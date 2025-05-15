@@ -154,7 +154,7 @@ vec4 render(vec3 ro, vec3 rd, float time) {
     // Motion blur effect increases with speed and high frequencies
     float motionBlurFactor = 0.0; // clamp((uCameraSpeed - 1.0) * 0.2, 0.0, 0.5) * (1.0 + uHighEnergy * uEnergyCameraEffect * 0.1); // Set to 0 to remove motion blur
     
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 500; i++) {
         if (rez.a > 0.99) break;
         
         vec3 pos = ro + t * rd * tunnelSpeedFactor; // Speed-adjusted ray position
