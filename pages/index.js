@@ -17,7 +17,7 @@ const AudioShaderSync = () => {
         isAnalyzing: false,
         isLooping: false
     });
-    const [selectedShader, setSelectedShader] = useState('ghostlySpirits');
+    const [selectedShader, setSelectedShader] = useState('retroTunnel');
     const [shaderUniforms, setShaderUniforms] = useState(null);
     const [availableShaders, setAvailableShaders] = useState([]);
     const [customShader, setCustomShader] = useState(null);
@@ -34,7 +34,7 @@ const AudioShaderSync = () => {
         transientEffect: 0.3,
         colorIntensity: 0.5
     });
-    const [activeControlsView, setActiveControlsView] = useState('editor'); // Default to 'editor'
+    const [activeControlsView, setActiveControlsView] = useState('controls'); // Default to 'editor'
     const [paneSizes, setPaneSizes] = useState({ left: 40, right: 60 });
     const [isDragging, setIsDragging] = useState(false);
     const containerRef = useRef(null);
