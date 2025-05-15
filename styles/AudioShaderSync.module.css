@@ -145,17 +145,16 @@
 }
 
 .fileUploadSection {
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
     border-bottom: 1px dashed #FF00FF;
-    /* Neon Pink dashed separator */
 }
 
 .fileInputContainer {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 1rem;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .fileInput {
@@ -174,20 +173,17 @@
 
 .fileInputLabel {
     display: inline-block;
-    padding: 0.8rem 1.8rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 4px;
     background: linear-gradient(45deg, #FF00FF, #E600E6);
-    /* Neon Pink */
     color: #FFFFFF;
     font-weight: bold;
     font-family: 'VT323', monospace;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     text-transform: uppercase;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 2px solid #FF00FF;
-    /* box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3); */
-    /* Removed old shadow */
     box-shadow: 0 0 8px #FF00FF, inset 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
@@ -199,17 +195,17 @@
 
 /* Base Button Style */
 .baseButton {
-    padding: 0.8rem 1.8rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 4px;
     border-style: solid;
     border-width: 2px;
     font-weight: bold;
     font-family: 'VT323', monospace;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     text-transform: uppercase;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: 120px;
+    min-width: 100px;
 }
 
 .playButton {
@@ -262,8 +258,8 @@
 
 .controlsRow {
     display: flex;
-    gap: 2rem;
-    margin-bottom: 1.5rem;
+    gap: 1rem;
+    margin-bottom: 1rem;
     flex-wrap: wrap;
 }
 
@@ -271,29 +267,25 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    min-width: 220px;
+    min-width: 200px;
 }
 
 .controlLabel {
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.4rem;
     font-weight: normal;
     display: block;
     color: #00FFFF;
-    /* Neon Cyan labels */
-    font-size: 1rem;
+    font-size: 0.85rem;
     text-shadow: 0 0 2px #00FFFF;
 }
 
 .controlSelect {
-    padding: 0.7rem;
+    padding: 0.5rem;
     border-radius: 4px;
     background-color: #101020;
-    /* Dark input bg */
     border: 1px solid #00FFFF;
-    /* Neon Cyan border */
     color: #00FFFF;
-    /* Neon Cyan text */
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-family: 'VT323', monospace;
     box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.3);
     appearance: none;
@@ -313,33 +305,30 @@
 .timeControls {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
 }
 
 .timeDisplay {
-    padding: 0.7rem 1rem;
+    padding: 0.5rem 0.7rem;
     background-color: rgba(0, 0, 0, 0.5);
-    /* Semi-transparent black */
     border-radius: 4px;
     font-family: 'Press Start 2P', monospace;
-    /* Pixel font */
     color: #00FFFF;
-    /* Neon Cyan */
     text-align: center;
     min-width: 65px;
     border: 1px solid #00FFFF;
     box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.5);
+    font-size: 0.8rem;
 }
 
 .skipButton {
     background: linear-gradient(45deg, #9900CC, #6600CC);
-    /* Purple gradient */
     color: #FFFFFF;
     border: 1px solid #BB00FF;
     border-radius: 4px;
-    padding: 0.5rem 0.7rem;
-    font-size: 1rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 0 6px rgba(187, 0, 255, 0.5);
@@ -369,20 +358,18 @@
 }
 
 .customShaderContainer {
-    margin-top: 1.5rem;
+    margin-top: 0.8rem;
     border-top: 1px dashed #FF00FF;
-    /* Pink dashed separator */
-    padding-top: 1.5rem;
+    padding-top: 0.8rem;
 }
 
 .customShaderSummary {
     cursor: pointer;
-    padding: 0.5rem 0;
+    padding: 0.3rem 0;
     font-weight: normal;
     user-select: none;
     color: #FF00FF;
-    /* Neon Pink */
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     text-shadow: 0 0 3px #FF00FF;
     transition: color 0.2s ease;
 }
@@ -511,19 +498,17 @@
 
 .shaderButtonsContainer {
     display: flex;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 8px;
+    margin-top: 8px;
     flex-wrap: wrap;
 }
 
 .applyShaderButton {
     composes: baseButton;
-    /* Inherit base button styles */
-    padding: 8px 16px;
-    font-size: 1rem;
+    padding: 6px 12px;
+    font-size: 0.85rem;
     width: auto;
     background: linear-gradient(45deg, #00CC00, #00AA00);
-    /* Neon Green gradient */
     color: #FFFFFF;
     border-color: #00FF00;
     text-transform: none;
@@ -568,18 +553,13 @@
 
 .clearShaderButton {
     composes: baseButton;
-    /* Inherit base button styles */
-    padding: 8px 16px;
-    font-size: 1rem;
-    /* Slightly larger text to match apply button */
+    padding: 6px 12px;
+    font-size: 0.85rem;
     width: auto;
-    /* Auto width */
     background: linear-gradient(45deg, #707080, #505060);
-    /* Grey gradient */
     color: #E0E0E0;
     border-color: #707080;
     text-transform: none;
-    /* Normal case for this button */
     box-shadow: 0 0 5px #707080;
 }
 
@@ -634,13 +614,13 @@
 
 /* New styles for AudioShaderControls */
 .colorInput {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     background: none;
-    margin-left: 8px;
+    margin-left: 6px;
     vertical-align: middle;
     outline: 2px solid #00FFFF;
     transition: all 0.2s ease;
@@ -654,8 +634,8 @@
 
 .rangeInput {
     width: 100%;
-    margin-top: 10px;
-    height: 6px;
+    margin-top: 6px;
+    height: 4px;
     background: #1a1a2e;
     border-radius: 5px;
     outline: none;
@@ -664,26 +644,13 @@
 }
 
 .rangeInput::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #00FFFF;
-    box-shadow: 0 0 8px #00FFFF;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    width: 14px;
+    height: 14px;
 }
 
 .rangeInput::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #00FFFF;
-    box-shadow: 0 0 8px #00FFFF;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
+    width: 14px;
+    height: 14px;
 }
 
 .rangeInput::-webkit-slider-thumb:hover {
@@ -699,34 +666,28 @@
 }
 
 .controlGroupTitle {
-    font-size: 1.5rem;
-    font-weight: normal;
-    margin: 0 0 15px 0;
-    padding-bottom: 10px;
-    color: #FFD700;
-    border-bottom: 1px dashed #00FFFF;
-    text-shadow: 0 0 5px #00FFFF;
+    font-size: 1.2rem;
+    margin: 0 0 10px 0;
+    padding-bottom: 8px;
 }
 
 /* Toggle switch for color control */
 .switchLabel {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 0.6rem;
+    gap: 8px;
+    margin-bottom: 0.4rem;
     font-weight: normal;
     color: #00FFFF;
-    font-size: 1rem;
+    font-size: 0.85rem;
     text-shadow: 0 0 2px #00FFFF;
     cursor: pointer;
 }
 
 .toggleSwitch {
-    position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 24px;
-    margin: 0 10px;
+    width: 40px;
+    height: 20px;
+    margin: 0 8px;
 }
 
 .toggleInput {
@@ -751,8 +712,8 @@
 .toggleSlider:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
+    height: 14px;
+    width: 14px;
     left: 3px;
     bottom: 2px;
     background-color: #FF00FF;
@@ -767,16 +728,11 @@
 }
 
 .toggleInput:checked+.toggleSlider:before {
-    transform: translateX(24px);
-    background-color: #00FFFF;
-    box-shadow: 0 0 8px #00FFFF;
+    transform: translateX(20px);
 }
 
 .toggleHint {
-    font-size: 0.8rem;
-    opacity: 0.8;
-    font-style: italic;
-    color: #A0A0F0;
+    font-size: 0.7rem;
 }
 
 /* Styles for Control Panel Tabs */
@@ -873,11 +829,7 @@
     flex-direction: column;
     width: 100%;
     flex-grow: 1;
-    /* Allow it to take available space in its parent (the green bordered div) */
-    /* DEBUGGING: Add a distinct border to see if this container renders */
-    border: 3px dashed orange !important;
-    padding: 10px;
-    /* Some padding to see the border clearly from its content */
+    padding: 0;
     min-height: 50px;
-    /* Ensure it's visible */
+    border: none !important;
 }

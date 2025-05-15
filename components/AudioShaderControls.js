@@ -278,50 +278,55 @@ const AudioShaderControls = ({
     }, []);
 
     return (
-        <div className={styles.audioShaderControlsContainer}>
-            <h3 className={styles.controlGroupTitle}>Shader Controls</h3>
+        <div className={styles.audioShaderControlsContainer} style={{ width: '100%', padding: '5px' }}>
+            <h3 className={styles.controlGroupTitle} style={{ fontSize: '1rem', marginBottom: '8px', paddingBottom: '6px', color: '#FFD700', borderBottom: '1px dashed #00FFFF' }}>
+                Shader Controls
+            </h3>
 
             {/* Action buttons at the top */}
-            <div className={styles.shaderButtonsContainer}>
+            <div className={styles.shaderButtonsContainer} style={{ gap: '6px', marginTop: '6px', marginBottom: '10px', display: 'flex', flexWrap: 'wrap' }}>
                 <button
                     onClick={randomizeColors}
                     className={styles.applyShaderButton}
+                    style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: 'auto' }}
                 >
                     Randomize Colors
                 </button>
                 <button
                     onClick={randomizeAllSettings}
                     className={styles.applyShaderButton}
+                    style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: 'auto' }}
                 >
-                    Randomize All Settings
+                    Randomize All
                 </button>
                 <button
                     onClick={resetToDefaults}
                     className={styles.clearShaderButton}
+                    style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: 'auto' }}
                 >
-                    Reset Defaults
+                    Reset
                 </button>
                 <button
                     onClick={applyChanges}
                     className={`${styles.applyShaderButton} ${hasChanges ? styles.hasChanges : ''}`}
                     disabled={!hasChanges}
+                    style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: 'auto' }}
                 >
-                    Apply Changes
+                    Apply
                 </button>
             </div>
 
             {/* Color controls */}
-            <details className={styles.customShaderContainer} open>
-                <summary className={styles.customShaderSummary}>
+            <details className={styles.customShaderContainer} style={{ marginTop: '6px', paddingTop: '6px', display: 'block' }} open>
+                <summary className={styles.customShaderSummary} style={{ fontSize: '0.85rem', padding: '2px 0', color: '#FF00FF', marginBottom: '5px' }}>
                     Color Controls
                 </summary>
 
-                {/* Toggle for using color controls vs random colors */}
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.switchLabel}>
-                            Use Selected Colors Only:
-                            <div className={styles.toggleSwitch}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.switchLabel} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+                            Use Selected Colors:
+                            <div className={styles.toggleSwitch} style={{ position: 'relative', display: 'inline-block', margin: '0 8px' }}>
                                 <input
                                     type="checkbox"
                                     checked={params.useColorControls}
@@ -330,72 +335,77 @@ const AudioShaderControls = ({
                                 />
                                 <span className={styles.toggleSlider}></span>
                             </div>
-                            <span className={styles.toggleHint}>
-                                {params.useColorControls ? 'ON - Using selected colors only' : 'OFF - Using random colors'}
+                            <span className={styles.toggleHint} style={{ fontSize: '0.65rem', opacity: 0.8, fontStyle: 'italic', color: '#A0A0F0' }}>
+                                {params.useColorControls ? 'ON' : 'OFF'}
                             </span>
                         </label>
                     </div>
                 </div>
 
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <div className={styles.controlGroup} style={{ flex: '1', minWidth: '105px', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Primary Color:
                             <input
                                 type="color"
                                 value={rgbToHex(params.color1.r, params.color1.g, params.color1.b)}
                                 onChange={(e) => handleColorChange('color1', e.target.value)}
                                 className={styles.colorInput}
+                                style={{ width: '25px', height: '25px', verticalAlign: 'middle', marginLeft: '5px' }}
                             />
                         </label>
                     </div>
 
-                    <div className={styles.controlGroup}>
-                        <label className={styles.controlLabel}>
-                            Secondary Color:
+                    <div className={styles.controlGroup} style={{ flex: '1', minWidth: '105px', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
+                            Secondary:
                             <input
                                 type="color"
                                 value={rgbToHex(params.color2.r, params.color2.g, params.color2.b)}
                                 onChange={(e) => handleColorChange('color2', e.target.value)}
                                 className={styles.colorInput}
+                                style={{ width: '25px', height: '25px', verticalAlign: 'middle', marginLeft: '5px' }}
                             />
                         </label>
                     </div>
 
-                    <div className={styles.controlGroup}>
-                        <label className={styles.controlLabel}>
-                            Tertiary Color:
+                    <div className={styles.controlGroup} style={{ flex: '1', minWidth: '105px', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
+                            Tertiary:
                             <input
                                 type="color"
                                 value={rgbToHex(params.color3.r, params.color3.g, params.color3.b)}
                                 onChange={(e) => handleColorChange('color3', e.target.value)}
                                 className={styles.colorInput}
+                                style={{ width: '25px', height: '25px', verticalAlign: 'middle', marginLeft: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
 
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <div className={styles.controlGroup} style={{ flex: '1', minWidth: '130px', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Fog Color:
                             <input
                                 type="color"
                                 value={rgbToHex(params.fogColor.r, params.fogColor.g, params.fogColor.b)}
                                 onChange={(e) => handleColorChange('fogColor', e.target.value)}
                                 className={styles.colorInput}
+                                style={{ width: '25px', height: '25px', verticalAlign: 'middle', marginLeft: '5px' }}
                             />
                         </label>
                     </div>
 
-                    <div className={styles.controlGroup}>
-                        <label className={styles.controlLabel}>
+                    <div className={styles.controlGroup} style={{ flex: '1', minWidth: '130px', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Glow Color:
                             <input
                                 type="color"
                                 value={rgbToHex(params.glowColor.r, params.glowColor.g, params.glowColor.b)}
                                 onChange={(e) => handleColorChange('glowColor', e.target.value)}
                                 className={styles.colorInput}
+                                style={{ width: '25px', height: '25px', verticalAlign: 'middle', marginLeft: '5px' }}
                             />
                         </label>
                     </div>
@@ -403,13 +413,13 @@ const AudioShaderControls = ({
             </details>
 
             {/* Motion and effect controls */}
-            <details className={styles.customShaderContainer} open>
-                <summary className={styles.customShaderSummary}>
+            <details className={styles.customShaderContainer} style={{ marginTop: '6px', paddingTop: '6px', display: 'block' }} open>
+                <summary className={styles.customShaderSummary} style={{ fontSize: '0.85rem', padding: '2px 0', color: '#FF00FF', marginBottom: '5px' }}>
                     Motion & Effects
                 </summary>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Camera Speed: {params.cameraSpeed.toFixed(2)}
                             <input
                                 type="range"
@@ -419,53 +429,15 @@ const AudioShaderControls = ({
                                 value={params.cameraSpeed}
                                 onChange={(e) => handleSliderChange('cameraSpeed', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
 
-                {/* Tunnel Breathing Controls */}
-                <details className={styles.customShaderContainer}>
-                    <summary className={styles.customShaderSummary}>
-                        Tunnel Breathing Effect
-                    </summary>
-                    <div className={styles.controlsRow}>
-                        <div className={styles.controlGroup} style={{ width: '100%' }}>
-                            <label className={styles.controlLabel}>
-                                Breathing Rate: {params.breathingRate.toFixed(2)}
-                                <input
-                                    type="range"
-                                    min="0.1"
-                                    max="5.0"
-                                    step="0.1"
-                                    value={params.breathingRate}
-                                    onChange={(e) => handleSliderChange('breathingRate', e.target.value)}
-                                    className={styles.rangeInput}
-                                />
-                            </label>
-                        </div>
-                    </div>
-                    <div className={styles.controlsRow}>
-                        <div className={styles.controlGroup} style={{ width: '100%' }}>
-                            <label className={styles.controlLabel}>
-                                Breathing Amount: {params.breathingAmount.toFixed(2)}
-                                <input
-                                    type="range"
-                                    min="0.0"
-                                    max="15.0"
-                                    step="0.5"
-                                    value={params.breathingAmount}
-                                    onChange={(e) => handleSliderChange('breathingAmount', e.target.value)}
-                                    className={styles.rangeInput}
-                                />
-                            </label>
-                        </div>
-                    </div>
-                </details>
-
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Transient Effect: {params.transientEffect.toFixed(1)}
                             <input
                                 type="range"
@@ -475,14 +447,15 @@ const AudioShaderControls = ({
                                 value={params.transientEffect}
                                 onChange={(e) => handleSliderChange('transientEffect', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
 
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Color Intensity: {params.colorIntensity.toFixed(2)}
                             <input
                                 type="range"
@@ -492,20 +465,21 @@ const AudioShaderControls = ({
                                 value={params.colorIntensity}
                                 onChange={(e) => handleSliderChange('colorIntensity', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
             </details>
 
-            {/* Audio Effect Intensity Controls */}
-            <details className={styles.customShaderContainer} open>
-                <summary className={styles.customShaderSummary}>
+            {/* Remaining controls sections are hidden by default to focus on the most important ones */}
+            <details className={styles.customShaderContainer} style={{ marginTop: '6px', paddingTop: '6px', display: 'block' }}>
+                <summary className={styles.customShaderSummary} style={{ fontSize: '0.85rem', padding: '2px 0', color: '#FF00FF', marginBottom: '5px' }}>
                     Audio Effect Intensity
                 </summary>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Energy Camera Effect: {params.energyCameraEffect.toFixed(3)}
                             <input
                                 type="range"
@@ -515,13 +489,14 @@ const AudioShaderControls = ({
                                 value={params.energyCameraEffect}
                                 onChange={(e) => handleSliderChange('energyCameraEffect', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Energy Color Effect: {params.energyColorEffect.toFixed(1)}
                             <input
                                 type="range"
@@ -531,13 +506,14 @@ const AudioShaderControls = ({
                                 value={params.energyColorEffect}
                                 onChange={(e) => handleSliderChange('energyColorEffect', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Transient Camera Effect: {params.transientCameraEffect.toFixed(3)}
                             <input
                                 type="range"
@@ -547,13 +523,14 @@ const AudioShaderControls = ({
                                 value={params.transientCameraEffect}
                                 onChange={(e) => handleSliderChange('transientCameraEffect', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Transient Color Effect: {params.transientColorEffect.toFixed(1)}
                             <input
                                 type="range"
@@ -563,20 +540,20 @@ const AudioShaderControls = ({
                                 value={params.transientColorEffect}
                                 onChange={(e) => handleSliderChange('transientColorEffect', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
             </details>
 
-            {/* Advanced Camera Movement Controls */}
-            <details className={styles.customShaderContainer}>
-                <summary className={styles.customShaderSummary}>
+            <details className={styles.customShaderContainer} style={{ marginTop: '6px', paddingTop: '6px', display: 'block' }}>
+                <summary className={styles.customShaderSummary} style={{ fontSize: '0.85rem', padding: '2px 0', color: '#FF00FF', marginBottom: '5px' }}>
                     Advanced Camera Movement
                 </summary>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Base Camera Speed: {params.baseCameraSpeed.toFixed(1)}
                             <input
                                 type="range"
@@ -586,13 +563,14 @@ const AudioShaderControls = ({
                                 value={params.baseCameraSpeed}
                                 onChange={(e) => handleSliderChange('baseCameraSpeed', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Max Speed Boost Factor: {params.maxCameraSpeedBoostFactor.toFixed(1)}
                             <input
                                 type="range"
@@ -602,13 +580,14 @@ const AudioShaderControls = ({
                                 value={params.maxCameraSpeedBoostFactor}
                                 onChange={(e) => handleSliderChange('maxCameraSpeedBoostFactor', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Transient Threshold: {params.transientThresholdForSpeedBoost.toFixed(2)}
                             <input
                                 type="range"
@@ -618,13 +597,14 @@ const AudioShaderControls = ({
                                 value={params.transientThresholdForSpeedBoost}
                                 onChange={(e) => handleSliderChange('transientThresholdForSpeedBoost', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Energy Boost Factor: {params.energyBoostFactor.toFixed(2)}
                             <input
                                 type="range"
@@ -634,20 +614,20 @@ const AudioShaderControls = ({
                                 value={params.energyBoostFactor}
                                 onChange={(e) => handleSliderChange('energyBoostFactor', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
             </details>
 
-            {/* Timing and Smoothing Controls */}
-            <details className={styles.customShaderContainer}>
-                <summary className={styles.customShaderSummary}>
+            <details className={styles.customShaderContainer} style={{ marginTop: '6px', paddingTop: '6px', display: 'block' }}>
+                <summary className={styles.customShaderSummary} style={{ fontSize: '0.85rem', padding: '2px 0', color: '#FF00FF', marginBottom: '5px' }}>
                     Timing & Smoothing
                 </summary>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Camera Speed Smoothing: {params.cameraSpeedSmoothingDuration}ms
                             <input
                                 type="range"
@@ -657,13 +637,14 @@ const AudioShaderControls = ({
                                 value={params.cameraSpeedSmoothingDuration}
                                 onChange={(e) => handleSliderChange('cameraSpeedSmoothingDuration', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             Color Smoothing: {params.colorSmoothingDuration}ms
                             <input
                                 type="range"
@@ -673,13 +654,14 @@ const AudioShaderControls = ({
                                 value={params.colorSmoothingDuration}
                                 onChange={(e) => handleSliderChange('colorSmoothingDuration', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>
                 </div>
-                <div className={styles.controlsRow}>
-                    <div className={styles.controlGroup} style={{ width: '100%' }}>
-                        <label className={styles.controlLabel}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
                             General Smoothing: {params.smoothingDuration}ms
                             <input
                                 type="range"
@@ -689,6 +671,7 @@ const AudioShaderControls = ({
                                 value={params.smoothingDuration}
                                 onChange={(e) => handleSliderChange('smoothingDuration', e.target.value)}
                                 className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
                             />
                         </label>
                     </div>

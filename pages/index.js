@@ -478,7 +478,7 @@ void main() {
                     {/* LEFT SIDE: Controls */}
                     <div style={{
                         width: `${paneSizes.left}%`,
-                        padding: '16px',
+                        padding: '12px',
                         backgroundColor: '#0a001e',
                         overflow: 'auto',
                         position: 'relative',
@@ -486,10 +486,10 @@ void main() {
                         display: 'flex',
                         flexDirection: 'column'
                     }}>
-                        {/* File upload and initial controls remain always visible */}
-                        <div className={styles.fileUploadSection}>
-                            <div className={styles.fileInputContainer}>
-                                <div className={styles.fileInput}>
+                        {/* More compact file upload and controls section */}
+                        <div className={styles.fileUploadSection} style={{ marginBottom: '0.75rem', paddingBottom: '0.75rem' }}>
+                            <div className={styles.fileInputContainer} style={{ gap: '0.5rem' }}>
+                                <div className={styles.fileInput} style={{ flex: '0.7' }}>
                                     <input
                                         type="file"
                                         accept="audio/*"
@@ -497,8 +497,8 @@ void main() {
                                         id="audio-file"
                                         ref={fileInputRef}
                                     />
-                                    <label htmlFor="audio-file" className={styles.fileInputLabel}>
-                                        {audioState.audioFile ? 'Change Audio File' : 'Select Audio File'}
+                                    <label htmlFor="audio-file" className={styles.fileInputLabel} style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', padding: '0.5rem 0.75rem' }}>
+                                        {audioState.audioFile ? 'Change Audio' : 'Select Audio'}
                                     </label>
                                 </div>
 
@@ -506,22 +506,23 @@ void main() {
                                     onClick={handlePlayPause}
                                     disabled={!audioState.audioFile || audioState.isAnalyzing}
                                     className={`${styles.playButton} ${audioState.isPlaying ? styles.pause : styles.play}`}
+                                    style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', flex: '0.3' }}
                                 >
                                     {audioState.isAnalyzing ? 'Analyzing...' : audioState.isPlaying ? 'Pause' : 'Play'}
                                 </button>
                             </div>
 
                             {audioState.audioFile && (
-                                <div className={styles.fileInfoDisplay}>
-                                    {audioState.audioFile.name} {audioState.isAnalyzing && '(Analyzing audio features...)'}
+                                <div className={styles.fileInfoDisplay} style={{ fontSize: '0.75rem', marginTop: '0.3rem' }}>
+                                    {audioState.audioFile.name} {audioState.isAnalyzing && '(Analyzing...)'}
                                 </div>
                             )}
                         </div>
 
-                        <div className={styles.controlsRow}>
-                            <div className={styles.controlGroup}>
-                                <label htmlFor="shader-select" className={styles.controlLabel}>
-                                    Select Shader:
+                        <div className={styles.controlsRow} style={{ marginBottom: '0.75rem' }}>
+                            <div className={styles.controlGroup} style={{ minWidth: '140px' }}>
+                                <label htmlFor="shader-select" className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}>
+                                    Select Visual:
                                 </label>
                                 <select
                                     id="shader-select"
@@ -529,6 +530,7 @@ void main() {
                                     onChange={handleShaderChange}
                                     className={styles.controlSelect}
                                     disabled={isLoadingShader}
+                                    style={{ fontSize: '0.8rem', padding: '0.4rem' }}
                                 >
                                     {availableShaders.map(shader => (
                                         <option key={shader.id} value={shader.id}>
@@ -537,24 +539,25 @@ void main() {
                                     ))}
                                 </select>
                                 {isLoadingShader && (
-                                    <div className={styles.loadingMessage}>
+                                    <div className={styles.loadingMessage} style={{ fontSize: '0.75rem' }}>
                                         Loading shader...
                                     </div>
                                 )}
                             </div>
 
-                            <div className={styles.controlGroup}>
-                                <span className={styles.controlLabel}>Current Time:</span>
+                            <div className={styles.controlGroup} style={{ minWidth: '140px' }}>
+                                <span className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}>Current Time:</span>
                                 <div className={styles.timeControls}>
                                     <button
                                         onClick={handleSkipBackward}
                                         className={styles.skipButton}
                                         title="Skip backward 5 seconds"
                                         disabled={!audioState.audioFile}
+                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
                                     >
                                         ⏪
                                     </button>
-                                    <div className={styles.timeDisplay}>
+                                    <div className={styles.timeDisplay} style={{ padding: '0.3rem 0.5rem', fontSize: '0.7rem' }}>
                                         {audioState.currentTime.toFixed(2)}s
                                     </div>
                                     <button
@@ -562,6 +565,7 @@ void main() {
                                         className={styles.skipButton}
                                         title="Reset to beginning"
                                         disabled={!audioState.audioFile}
+                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
                                     >
                                         ⟲
                                     </button>
@@ -570,6 +574,7 @@ void main() {
                                         className={`${styles.skipButton} ${audioState.isLooping ? styles.activeButton : ''}`}
                                         title="Toggle loop mode"
                                         disabled={!audioState.audioFile}
+                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
                                     >
                                         ↻
                                     </button>
@@ -578,6 +583,7 @@ void main() {
                                         className={styles.skipButton}
                                         title="Skip forward 5 seconds"
                                         disabled={!audioState.audioFile}
+                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
                                     >
                                         ⏩
                                     </button>
@@ -585,23 +591,24 @@ void main() {
                             </div>
                         </div>
 
-                        {/* Tab Controls */}
+                        {/* Tab Controls - more compact */}
                         <div style={{
                             display: 'flex',
                             borderBottom: '2px solid #00FFFF',
-                            marginBottom: '15px'
+                            marginBottom: '10px'
                         }}>
                             <button
                                 onClick={() => setActiveControlsView('controls')}
                                 style={{
                                     flex: 1,
-                                    padding: '10px',
+                                    padding: '6px',
                                     background: activeControlsView === 'controls' ? 'rgba(0, 255, 255, 0.2)' : 'transparent',
                                     color: activeControlsView === 'controls' ? '#00FFFF' : '#00AAAA',
                                     border: 'none',
                                     borderBottom: activeControlsView === 'controls' ? '3px solid #FF00FF' : '3px solid transparent',
                                     cursor: 'pointer',
-                                    fontWeight: activeControlsView === 'controls' ? 'bold' : 'normal'
+                                    fontWeight: activeControlsView === 'controls' ? 'bold' : 'normal',
+                                    fontSize: '0.8rem'
                                 }}
                             >
                                 SHADER CONTROLS
@@ -610,13 +617,14 @@ void main() {
                                 onClick={() => setActiveControlsView('editor')}
                                 style={{
                                     flex: 1,
-                                    padding: '10px',
+                                    padding: '6px',
                                     background: activeControlsView === 'editor' ? 'rgba(0, 255, 255, 0.2)' : 'transparent',
                                     color: activeControlsView === 'editor' ? '#00FFFF' : '#00AAAA',
                                     border: 'none',
                                     borderBottom: activeControlsView === 'editor' ? '3px solid #FF00FF' : '3px solid transparent',
                                     cursor: 'pointer',
-                                    fontWeight: activeControlsView === 'editor' ? 'bold' : 'normal'
+                                    fontWeight: activeControlsView === 'editor' ? 'bold' : 'normal',
+                                    fontSize: '0.8rem'
                                 }}
                             >
                                 SHADER EDITOR
@@ -626,11 +634,12 @@ void main() {
                         {/* Content container with tabs */}
                         <div style={{
                             flexGrow: 1,
-                            padding: '10px',
+                            padding: '8px',
                             display: 'block',
                             position: 'relative',
                             zIndex: 10,
-                            overflow: 'auto'
+                            overflow: 'auto',
+                            backgroundColor: '#0a001e' // Ensure background is visible
                         }}>
                             {/* Conditional content based on tabs */}
                             {activeControlsView === 'controls' && (
