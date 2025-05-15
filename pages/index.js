@@ -451,7 +451,7 @@ void main() {
     return (
         <div className={styles.container}>
             <Head>
-                <title>Audio-Shader Sync | afk.ai</title>
+                <title>Audio-Shader Sync | makemusic.video</title>
                 <meta name="description" content="Visualize audio with reactive WebGL shaders" />
             </Head>
 
@@ -522,7 +522,7 @@ void main() {
                         <div className={styles.controlsRow} style={{ marginBottom: '0.75rem' }}>
                             <div className={styles.controlGroup} style={{ minWidth: '140px' }}>
                                 <label htmlFor="shader-select" className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}>
-                                    Select Visual:
+                                    Select Template Visual:
                                 </label>
                                 <select
                                     id="shader-select"
@@ -611,7 +611,7 @@ void main() {
                                     fontSize: '0.8rem'
                                 }}
                             >
-                                SHADER CONTROLS
+                                VISUAL CONTROLS
                             </button>
                             <button
                                 onClick={() => setActiveControlsView('editor')}
@@ -627,7 +627,7 @@ void main() {
                                     fontSize: '0.8rem'
                                 }}
                             >
-                                SHADER EDITOR
+                                VISUAL EDITOR
                             </button>
                         </div>
 
@@ -714,7 +714,7 @@ void main() {
             </main>
 
             <footer className={styles.footer}>
-                <p>&copy; {new Date().getFullYear()} afk.ai - All Rights Reserved</p>
+                <p>&copy; {new Date().getFullYear()} makemusic.video - All Rights Reserved</p>
             </footer>
 
             {/* Hidden audio element */}

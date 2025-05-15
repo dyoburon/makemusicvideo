@@ -280,7 +280,7 @@ const AudioShaderControls = ({
     return (
         <div className={styles.audioShaderControlsContainer} style={{ width: '100%', padding: '5px' }}>
             <h3 className={styles.controlGroupTitle} style={{ fontSize: '1rem', marginBottom: '8px', paddingBottom: '6px', color: '#FFD700', borderBottom: '1px dashed #00FFFF' }}>
-                Shader Controls
+                Visual Controls
             </h3>
 
             {/* Action buttons at the top */}
