@@ -34,6 +34,10 @@ const AudioShaderSync = () => {
         transientEffect: 0.3,
         colorIntensity: 0.5
     });
+    const [activeControlsView, setActiveControlsView] = useState('editor'); // Default to 'editor'
+    const [paneSizes, setPaneSizes] = useState({ left: 40, right: 60 });
+    const [isDragging, setIsDragging] = useState(false);
+    const containerRef = useRef(null);
 
     const audioRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -394,6 +398,56 @@ void main() {
         ShaderManager.updateShaderParams(newParams);
     };
 
+    // Handlers for resizable panes
+    const handleMouseDown = useCallback((e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
+
+    const handleMouseUp = useCallback(() => {
+        if (isDragging) {
+            setIsDragging(false);
+        }
+    }, [isDragging]);
+
+    const handleMouseMove = useCallback((e) => {
+        if (!isDragging || !containerRef.current) return;
+
+        const containerRect = containerRef.current.getBoundingClientRect();
+        let newLeftWidthPercentage = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+
+        // Clamp values to min/max percentages (20% minimum for each pane)
+        newLeftWidthPercentage = Math.max(20, newLeftWidthPercentage);
+        newLeftWidthPercentage = Math.min(80, newLeftWidthPercentage);
+
+        setPaneSizes({
+            left: newLeftWidthPercentage,
+            right: 100 - newLeftWidthPercentage
+        });
+    }, [isDragging]);
+
+    // Add/remove event listeners for drag operation
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        } else {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+        };
+    }, [isDragging, handleMouseMove, handleMouseUp]);
+
     return (
         <div className={styles.container}>
             <Head>
@@ -407,19 +461,237 @@ void main() {
             </header>
 
             <main className={styles.main}>
+                {/* Flex container with resizable panels */}
+                <div
+                    ref={containerRef}
+                    style={{
+                        display: 'flex',
+                        width: '100%',
+                        height: '85vh', // Constrain height to viewport
+                        maxHeight: 'calc(100vh - 140px)', // Subtract header + footer + some margin
+                        border: '2px solid #333',
+                        borderRadius: '8px',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}
+                >
+                    {/* LEFT SIDE: Controls */}
+                    <div style={{
+                        width: `${paneSizes.left}%`,
+                        padding: '16px',
+                        backgroundColor: '#0a001e',
+                        overflow: 'auto',
+                        position: 'relative',
+                        zIndex: 5,
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        {/* File upload and initial controls remain always visible */}
+                        <div className={styles.fileUploadSection}>
+                            <div className={styles.fileInputContainer}>
+                                <div className={styles.fileInput}>
+                                    <input
+                                        type="file"
+                                        accept="audio/*"
+                                        onChange={handleFileChange}
+                                        id="audio-file"
+                                        ref={fileInputRef}
+                                    />
+                                    <label htmlFor="audio-file" className={styles.fileInputLabel}>
+                                        {audioState.audioFile ? 'Change Audio File' : 'Select Audio File'}
+                                    </label>
+                                </div>
 
-                {/* Two-column layout container */}
-                <div className={styles.twoColumnLayout}>
+                                <button
+                                    onClick={handlePlayPause}
+                                    disabled={!audioState.audioFile || audioState.isAnalyzing}
+                                    className={`${styles.playButton} ${audioState.isPlaying ? styles.pause : styles.play}`}
+                                >
+                                    {audioState.isAnalyzing ? 'Analyzing...' : audioState.isPlaying ? 'Pause' : 'Play'}
+                                </button>
+                            </div>
 
-                    {/* Left Column: Visualization */}
-                    <div className={styles.canvasColumn}>
-                        <div className={styles.visualizationContainer}>
+                            {audioState.audioFile && (
+                                <div className={styles.fileInfoDisplay}>
+                                    {audioState.audioFile.name} {audioState.isAnalyzing && '(Analyzing audio features...)'}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={styles.controlsRow}>
+                            <div className={styles.controlGroup}>
+                                <label htmlFor="shader-select" className={styles.controlLabel}>
+                                    Select Shader:
+                                </label>
+                                <select
+                                    id="shader-select"
+                                    value={selectedShader}
+                                    onChange={handleShaderChange}
+                                    className={styles.controlSelect}
+                                    disabled={isLoadingShader}
+                                >
+                                    {availableShaders.map(shader => (
+                                        <option key={shader.id} value={shader.id}>
+                                            {shader.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {isLoadingShader && (
+                                    <div className={styles.loadingMessage}>
+                                        Loading shader...
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={styles.controlGroup}>
+                                <span className={styles.controlLabel}>Current Time:</span>
+                                <div className={styles.timeControls}>
+                                    <button
+                                        onClick={handleSkipBackward}
+                                        className={styles.skipButton}
+                                        title="Skip backward 5 seconds"
+                                        disabled={!audioState.audioFile}
+                                    >
+                                        ⏪
+                                    </button>
+                                    <div className={styles.timeDisplay}>
+                                        {audioState.currentTime.toFixed(2)}s
+                                    </div>
+                                    <button
+                                        onClick={handleReset}
+                                        className={styles.skipButton}
+                                        title="Reset to beginning"
+                                        disabled={!audioState.audioFile}
+                                    >
+                                        ⟲
+                                    </button>
+                                    <button
+                                        onClick={handleToggleLooping}
+                                        className={`${styles.skipButton} ${audioState.isLooping ? styles.activeButton : ''}`}
+                                        title="Toggle loop mode"
+                                        disabled={!audioState.audioFile}
+                                    >
+                                        ↻
+                                    </button>
+                                    <button
+                                        onClick={handleSkipForward}
+                                        className={styles.skipButton}
+                                        title="Skip forward 5 seconds"
+                                        disabled={!audioState.audioFile}
+                                    >
+                                        ⏩
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tab Controls */}
+                        <div style={{
+                            display: 'flex',
+                            borderBottom: '2px solid #00FFFF',
+                            marginBottom: '15px'
+                        }}>
+                            <button
+                                onClick={() => setActiveControlsView('controls')}
+                                style={{
+                                    flex: 1,
+                                    padding: '10px',
+                                    background: activeControlsView === 'controls' ? 'rgba(0, 255, 255, 0.2)' : 'transparent',
+                                    color: activeControlsView === 'controls' ? '#00FFFF' : '#00AAAA',
+                                    border: 'none',
+                                    borderBottom: activeControlsView === 'controls' ? '3px solid #FF00FF' : '3px solid transparent',
+                                    cursor: 'pointer',
+                                    fontWeight: activeControlsView === 'controls' ? 'bold' : 'normal'
+                                }}
+                            >
+                                SHADER CONTROLS
+                            </button>
+                            <button
+                                onClick={() => setActiveControlsView('editor')}
+                                style={{
+                                    flex: 1,
+                                    padding: '10px',
+                                    background: activeControlsView === 'editor' ? 'rgba(0, 255, 255, 0.2)' : 'transparent',
+                                    color: activeControlsView === 'editor' ? '#00FFFF' : '#00AAAA',
+                                    border: 'none',
+                                    borderBottom: activeControlsView === 'editor' ? '3px solid #FF00FF' : '3px solid transparent',
+                                    cursor: 'pointer',
+                                    fontWeight: activeControlsView === 'editor' ? 'bold' : 'normal'
+                                }}
+                            >
+                                SHADER EDITOR
+                            </button>
+                        </div>
+
+                        {/* Content container with tabs */}
+                        <div style={{
+                            flexGrow: 1,
+                            padding: '10px',
+                            display: 'block',
+                            position: 'relative',
+                            zIndex: 10,
+                            overflow: 'auto'
+                        }}>
+                            {/* Conditional content based on tabs */}
+                            {activeControlsView === 'controls' && (
+                                <AudioShaderControls
+                                    initialParams={shaderParams}
+                                    onUpdateParams={handleShaderParamUpdate}
+                                />
+                            )}
+
+                            {activeControlsView === 'editor' && (
+                                <ShaderEditor
+                                    shaderCode={customShader || tempCustomShader}
+                                    onApplyShader={applyCustomShader}
+                                />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Resizer Handle */}
+                    <div
+                        style={{
+                            width: '10px',
+                            cursor: 'col-resize',
+                            background: 'linear-gradient(to right, #1A0530, #4A00E0)',
+                            zIndex: 10,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderLeft: '1px solid #4A00E0',
+                            borderRight: '1px solid #4A00E0',
+                            transition: 'background 0.2s ease'
+                        }}
+                        onMouseDown={handleMouseDown}
+                        title="Drag to resize"
+                    >
+                        <div style={{
+                            width: '2px',
+                            height: '30px',
+                            backgroundColor: '#FF00FF',
+                            borderRadius: '1px'
+                        }}></div>
+                    </div>
+
+                    {/* RIGHT SIDE: Visualization */}
+                    <div style={{
+                        width: `${paneSizes.right}%`,
+                        backgroundColor: '#050108',
+                        display: 'flex',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            width: '100%',
+                            height: '100%',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
                             {isLoadingShader && <div className={styles.loadingOverlay}>Loading Shader...</div>}
                             {!isLoadingShader && currentShaderSrc && (
                                 <ShaderVisualizer
-                                    key={selectedShader} // Crucial: remounts when shader ID changes
-                                    width="100%"
-                                    height="100%"
+                                    key={selectedShader}
                                     shaderSrc={currentShaderSrc}
                                     onUpdateUniforms={handleUniformsUpdate}
                                 />
@@ -428,124 +700,8 @@ void main() {
                                 <div className={styles.placeholderVis}>Select a shader or apply custom code.</div>
                             )}
                         </div>
-
-                        {/* Shader Editor below visualization */}
-                        <ShaderEditor
-                            shaderCode={customShader || tempCustomShader}
-                            onApplyShader={applyCustomShader}
-                        />
                     </div>
-
-                    {/* Right Column: Controls */}
-                    <div className={styles.controlsColumn}>
-                        <div className={styles.controlsPanel}>
-                            <div className={styles.fileUploadSection}>
-                                <div className={styles.fileInputContainer}>
-                                    <div className={styles.fileInput}>
-                                        <input
-                                            type="file"
-                                            accept="audio/*"
-                                            onChange={handleFileChange}
-                                            id="audio-file"
-                                            ref={fileInputRef}
-                                        />
-                                        <label htmlFor="audio-file" className={styles.fileInputLabel}>
-                                            {audioState.audioFile ? 'Change Audio File' : 'Select Audio File'}
-                                        </label>
-                                    </div>
-
-                                    <button
-                                        onClick={handlePlayPause}
-                                        disabled={!audioState.audioFile || audioState.isAnalyzing}
-                                        className={`${styles.playButton} ${audioState.isPlaying ? styles.pause : styles.play}`}
-                                    >
-                                        {audioState.isAnalyzing ? 'Analyzing...' : audioState.isPlaying ? 'Pause' : 'Play'}
-                                    </button>
-                                </div>
-
-                                {audioState.audioFile && (
-                                    <div className={styles.fileInfoDisplay}>
-                                        {audioState.audioFile.name} {audioState.isAnalyzing && '(Analyzing audio features...)'}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className={styles.controlsRow}>
-                                <div className={styles.controlGroup}>
-                                    <label htmlFor="shader-select" className={styles.controlLabel}>
-                                        Select Shader:
-                                    </label>
-                                    <select
-                                        id="shader-select"
-                                        value={selectedShader}
-                                        onChange={handleShaderChange}
-                                        className={styles.controlSelect}
-                                        disabled={isLoadingShader}
-                                    >
-                                        {availableShaders.map(shader => (
-                                            <option key={shader.id} value={shader.id}>
-                                                {shader.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {isLoadingShader && (
-                                        <div className={styles.loadingMessage}>
-                                            Loading shader...
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className={styles.controlGroup}>
-                                    <span className={styles.controlLabel}>Current Time:</span>
-                                    <div className={styles.timeControls}>
-                                        <button
-                                            onClick={handleSkipBackward}
-                                            className={styles.skipButton}
-                                            title="Skip backward 5 seconds"
-                                            disabled={!audioState.audioFile}
-                                        >
-                                            ⏪
-                                        </button>
-                                        <div className={styles.timeDisplay}>
-                                            {audioState.currentTime.toFixed(2)}s
-                                        </div>
-                                        <button
-                                            onClick={handleReset}
-                                            className={styles.skipButton}
-                                            title="Reset to beginning"
-                                            disabled={!audioState.audioFile}
-                                        >
-                                            ⟲
-                                        </button>
-                                        <button
-                                            onClick={handleToggleLooping}
-                                            className={`${styles.skipButton} ${audioState.isLooping ? styles.activeButton : ''}`}
-                                            title="Toggle loop mode"
-                                            disabled={!audioState.audioFile}
-                                        >
-                                            ↻
-                                        </button>
-                                        <button
-                                            onClick={handleSkipForward}
-                                            className={styles.skipButton}
-                                            title="Skip forward 5 seconds"
-                                            disabled={!audioState.audioFile}
-                                        >
-                                            ⏩
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* AudioShaderControls component */}
-                            <AudioShaderControls
-                                initialParams={shaderParams}
-                                onUpdateParams={handleShaderParamUpdate}
-                            />
-                        </div> {/* End .controlsPanel */}
-                    </div> {/* End .controlsColumn */}
-
-                </div> {/* End .twoColumnLayout */}
+                </div>
             </main>
 
             <footer className={styles.footer}>

@@ -1,0 +1,97 @@
+.resizablePanesContainer {
+    display: flex;
+    width: 100%;
+    height: 75vh;
+    /* Default height, can be overridden by parent or props */
+    /* border: 1px solid #4A00E0; /* Optional: Purple border for visual debugging */
+    overflow: hidden;
+    /* Important to prevent content spill during resize */
+    background-color: #080112;
+    /* Darker background for the pane container */
+    /* DEBUGGING: Add a very prominent outline */
+    outline: 10px solid limegreen !important;
+}
+
+.pane {
+    /* height: 100%; Panes will stretch if container has fixed height & display:flex */
+    overflow: auto;
+    /* Allow content within panes to scroll if necessary */
+    display: flex;
+    /* To help direct children (like .canvasColumn or .controlsColumn) fill height */
+    flex-direction: column;
+    /* Ensure children stack vertically and can use flex-grow */
+    position: relative;
+    /* For potential absolute positioned elements inside */
+    /* DEBUGGING: Force visibility and minimum size */
+    min-width: 50px !important;
+    /* Force a minimum width */
+    min-height: 50px !important;
+    /* Force a minimum height */
+    border: 5px dashed hotpink !important;
+    /* Make sure panes themselves are bordered */
+    /* Ensure background is distinct if content is transparent */
+    background-color: rgba(128, 128, 128, 0.2) !important;
+    /* DEBUGGING STYLES REMOVED BELOW */
+    /* border: 2px dotted yellow !important; */
+    /* min-width: 10px !important; */
+    /* min-height: 10px !important; */
+}
+
+/* Style first actual content pane REMOVED*/
+/* .pane:first-of-type {
+    background-color: rgba(255, 0, 0, 0.3) !important; 
+} */
+
+/* Style second actual content pane REMOVED*/
+/* .pane:last-of-type {
+    background-color: rgba(0, 0, 255, 0.3) !important; 
+} */
+
+/* Ensure direct children of .pane can grow to fill it */
+.pane>* {
+    flex-grow: 1;
+    display: flex;
+    /* If the child is a wrapper like canvasColumn, it needs to be flex too */
+    flex-direction: column;
+    min-height: 0;
+    /* Crucial for flex children to shrink and not overflow parent */
+}
+
+.divider {
+    width: 10px;
+    /* Slightly wider for easier grabbing */
+    background-color: #1A0530;
+    /* Dark Purple */
+    cursor: col-resize;
+    flex-shrink: 0;
+    /* Prevent divider from shrinking */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid #4A00E0;
+    /* Purple border */
+    border-right: 1px solid #4A00E0;
+    /* Purple border */
+    z-index: 5;
+    /* Ensure divider is above pane content if overlap occurs */
+    transition: background-color 0.2s ease;
+}
+
+.divider:hover {
+    background-color: #FF00FF;
+    /* Neon Pink on hover */
+}
+
+.divider:focus {
+    outline: 2px solid #00FFFF;
+    /* Cyan focus outline for accessibility */
+    background-color: #E600E6;
+    /* Slightly lighter pink when focused */
+}
+
+.errorFallback {
+    color: #FF00FF;
+    padding: 20px;
+    border: 1px solid #FF00FF;
+    text-align: center;
+}

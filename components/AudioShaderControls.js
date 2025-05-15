@@ -278,7 +278,7 @@ const AudioShaderControls = ({
     }, []);
 
     return (
-        <div className={styles.controlsPanel}>
+        <div className={styles.audioShaderControlsContainer}>
             <h3 className={styles.controlGroupTitle}>Shader Controls</h3>
 
             {/* Action buttons at the top */}

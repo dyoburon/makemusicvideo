@@ -78,11 +78,15 @@
 .main {
     flex: 1;
     width: 100%;
-    max-width: 95vw;
-    /* Changed from 1400px to allow more width */
+    /* main should take full width */
+    /* max-width: 95vw; Removed to allow ResizablePanes to use full width if needed */
     margin: 0 auto;
-    padding: 2rem;
-    /* Keep padding */
+    padding: 1rem;
+    /* Reduced padding to give more space to panes */
+    display: flex;
+    /* To make ResizablePanes (its child) fill height */
+    flex-direction: column;
+    /* Stack children vertically (header, ResizablePanes, footer) */
 }
 
 .title {
@@ -111,18 +115,33 @@
 }
 
 .controlsPanel {
-    background-color: rgba(10, 0, 30, 0.7);
-    /* Dark blue translucent */
-    border-radius: 8px;
-    padding: 2rem;
-    margin-bottom: 0;
-    /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); */
-    /* Removed default shadow */
+    background-color: rgba(10, 0, 30, 0.85);
+    /* Restored original background */
+    /* min-height: 150px; */
+    /* DEBUG: Removed */
+    border-radius: 6px;
+    padding: 1.5rem;
+    /* Adjusted padding */
     border: 2px solid #00FFFF;
-    /* Neon Cyan border */
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.2);
-    /* Cyan glow */
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3), inset 0 0 8px rgba(0, 255, 255, 0.15);
     width: 100%;
+    /* Fill the controlsColumn pane */
+    display: flex;
+    /* Enable flex for children */
+    flex-direction: column;
+    /* Stack children vertically */
+    flex-grow: 1;
+    /* Fill the height of .controlsColumn */
+    overflow-y: auto;
+    /* Allow scrolling if content exceeds height */
+    /* DEBUGGING: Make this panel VERY visible within its parent (controlsColumn) */
+    background-color: rgba(0, 255, 255, 0.5) !important;
+    /* Bright Cyan, semi-transparent */
+    border: 5px solid purple !important;
+    min-height: 250px !important;
+    /* Force a minimum height, smaller than parent */
+    margin: 10px;
+    /* Add margin to see it clearly inside controlsColumn */
 }
 
 .fileUploadSection {
@@ -402,27 +421,27 @@
 }
 
 .visualizationContainer {
-    aspect-ratio: 16 / 9;
+    /* aspect-ratio: 16 / 9; */
+    /* Remove aspect ratio to allow flexible height */
     width: 100%;
-    /* max-width: 1200px; */
-    /* Removed max-width to allow full column width */
-    margin: 0 auto 2rem auto;
-    /* Add bottom margin */
+    /* margin: 0 auto 2rem auto; */
+    /* Remove bottom margin, pane handles spacing */
+    margin: 0;
     border-radius: 6px;
     overflow: hidden;
     position: relative;
-    /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); */
-    /* Removed shadow */
-    border: 3px solid #00FFFF;
-    /* Neon Cyan border */
-    box-shadow: 0 0 20px #00FFFF, inset 0 0 10px rgba(0, 255, 255, 0.2);
-    /* Cyan glow */
+    border: 2px solid #00FFFF;
+    /* Thinner border to save space */
+    box-shadow: 0 0 10px #00FFFF, inset 0 0 5px rgba(0, 255, 255, 0.1);
+    /* Reduced glow */
     flex-grow: 1;
-    min-height: 700px;
-    /* Increased from 400px for larger size */
-    /* width: 100%; */
-    /* Removed duplicate width property */
+    /* Crucial: Allows it to fill the .canvasColumn */
+    /* min-height: 700px; */
+    /* Remove fixed min-height, should adapt */
     display: flex;
+    /* To make canvas fill it */
+    background-color: #05010A;
+    /* Dark bg for the visualizer area */
 }
 
 .visualizationContainer>canvas {
@@ -571,28 +590,44 @@
 
 /* Two-column Layout */
 .twoColumnLayout {
+    /* display: flex; */
+    /* Handled by ResizablePanes */
+    /* gap: 2rem; */
+    /* Handled by ResizablePanes divider */
+    /* margin-top: 2rem; */
+    /* Adjust spacing on .main or ResizablePanes container directly */
+    /* align-items: flex-start; */
+    /* New: Make it a container for ResizablePanes if needed for height control */
+    flex-grow: 1;
+    /* Allows it to take available vertical space in .main */
     display: flex;
-    gap: 2rem;
-    /* Space between columns */
-    margin-top: 2rem;
-    /* Space above the two-column section */
-    align-items: flex-start;
-    /* Align items to the top */
+    /* To make ResizablePanes fill it */
+    min-height: 0;
+    /* Important for flex children */
 }
 
 .canvasColumn {
-    flex: 3;
-    /* Canvas takes more space */
+    /* flex: 3; */
+    /* Width is now controlled by ResizablePanes */
     display: flex;
-    /* To allow visualizationContainer to define its own height */
     flex-direction: column;
+    padding: 0;
+    min-width: 0;
+    /* DEBUGGING: Add a border to see if this column renders and its bounds */
+    /* border: 3px solid limegreen !important; */
 }
 
 .controlsColumn {
-    flex: 2;
-    /* Controls take less space */
     display: flex;
     flex-direction: column;
+    padding: 0;
+    min-width: 0;
+    /* DEBUGGING: Make this column VERY visible */
+    background-color: rgba(255, 255, 0, 0.5) !important;
+    /* Bright Yellow, semi-transparent */
+    border: 5px solid red !important;
+    min-height: 300px !important;
+    /* Force a minimum height */
 }
 
 /* End Added styles */
@@ -742,4 +777,107 @@
     opacity: 0.8;
     font-style: italic;
     color: #A0A0F0;
+}
+
+/* Styles for Control Panel Tabs */
+.tabControlsContainer {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #00FFFF;
+    /* Cyan border to separate from content */
+}
+
+.tabButton {
+    composes: baseButton;
+    /* Inherit some base button styles if desired, or define fully */
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    /* Adjusted for tab context */
+    text-transform: uppercase;
+    background-color: transparent;
+    /* No background for inactive tabs */
+    color: #00AAAA;
+    /* Dimmed cyan for inactive tabs */
+    border: none;
+    /* Remove default button border */
+    border-bottom: 3px solid transparent;
+    /* Space for active indicator */
+    border-radius: 4px 4px 0 0;
+    /* Rounded top corners */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+    /* Overlap with container border for seamless look */
+    outline: none;
+}
+
+.tabButton:hover {
+    background-color: rgba(0, 255, 255, 0.1);
+    /* Slight cyan glow on hover */
+    color: #00FFFF;
+}
+
+.activeTabButton {
+    color: #00FFFF;
+    /* Bright Neon Cyan for active tab */
+    border-bottom: 3px solid #FF00FF;
+    /* Neon Pink underline for active tab */
+    font-weight: bold;
+    background-color: rgba(0, 50, 50, 0.3);
+    /* Slightly darker bg for active tab to stand out */
+}
+
+/* Adjustments for ShaderEditor when in .controlsPanel if needed */
+.controlsPanel .shaderTextarea {
+    height: 200px;
+    /* Default height, can be adjusted */
+    /* flex-grow: 1; /* Allow it to take more space if the panel is tall */
+    min-height: 150px;
+    /* Minimum reasonable height */
+}
+
+/* Style for placeholder text in visualizer */
+.placeholderVis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #505070;
+    /* Muted color */
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+/* Ensure loading overlay is centered */
+.loadingOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #FFD700;
+    font-size: 1.5rem;
+    z-index: 20;
+    /* Above canvas but below fullscreen button */
+}
+
+/* Styles for the container of AudioShaderControls component */
+.audioShaderControlsContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex-grow: 1;
+    /* Allow it to take available space in its parent (the green bordered div) */
+    /* DEBUGGING: Add a distinct border to see if this container renders */
+    border: 3px dashed orange !important;
+    padding: 10px;
+    /* Some padding to see the border clearly from its content */
+    min-height: 50px;
+    /* Ensure it's visible */
 }
