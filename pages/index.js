@@ -51,49 +51,111 @@ const AudioShaderSync = () => {
         return unsubscribe;
     }, []);
 
-    // Effect to manage audio playback state and listeners
-    useEffect(() => {
-        if (audioRef.current) {
-            console.log('[AUDIO SYNC] Audio ref available. Setting up listeners and managing playback.');
-            const timeUpdateCleanup = AudioAnalysisManager.setupTimeUpdateListener(audioRef.current);
-            const endedEventCleanup = AudioAnalysisManager.setupEndedEventListener(audioRef.current);
-
-            // Sync audio element's loop property with state
-            audioRef.current.loop = audioState.isLooping;
-
-            if (audioState.audioFile && audioState.isPlaying && audioRef.current.paused) {
-                console.log('[AUDIO SYNC] Attempting to play audio as state indicates playing and audio is loaded but paused.');
-                audioRef.current.play().catch(error => {
-                    console.warn("Audio play attempt failed. User interaction might be required or audio context not active yet.", error);
-                    // If autoplay is blocked, the user will need to manually click play.
-                    // We could update isPlaying to false here if necessary, but browser behavior might make this tricky.
-                    // For now, let the UI show "Pause" and the user can interact.
-                });
-            } else if (audioState.audioFile && !audioState.isPlaying && !audioRef.current.paused) {
-                console.log('[AUDIO SYNC] Pausing audio as state indicates not playing and audio is currently playing.');
-                audioRef.current.pause();
-            }
-
-            return () => {
-                console.log('[AUDIO SYNC] Cleaning up audio listeners for audioRef.');
-                timeUpdateCleanup();
-                endedEventCleanup();
-            };
-        }
-    }, [audioRef.current, audioState.audioFile, audioState.isPlaying, audioState.isLooping]);
-
     // Load available shaders on mount
     useEffect(() => {
         setAvailableShaders(ShaderManager.getAvailableShaders());
     }, []);
+
+    // useEffect to load shader source when selectedShader changes or on initial load
+    useEffect(() => {
+        if (selectedShader && selectedShader.startsWith('custom-')) {
+            console.log(`[ShaderLoadEffect] ${selectedShader} is a custom shader. Source should already be set. No library load.`);
+            // For custom shaders, currentShaderSrc is set directly by applyCustomShader.
+            // No further action needed here by this effect.
+            return;
+        }
+
+        if (availableShaders.length > 0 && selectedShader && !isLoadingShader) {
+            console.log(`[ShaderLoadEffect] Attempting to load library shader: ${selectedShader}`);
+            loadShaderSource(selectedShader); // This is async
+        }
+    }, [availableShaders, selectedShader, isLoadingShader]); // isLoadingShader helps prevent re-entry if loadShaderSource is slow
+
+    // Consolidated useEffect for managing audio playback based on state and shader readiness
+    useEffect(() => {
+        console.log(`[AUDIO SYNC Playback Effect] audioFile: ${!!audioState.audioFile}, isPlaying: ${audioState.isPlaying}, isAnalyzing: ${audioState.isAnalyzing}, currentShaderSrc: ${!!currentShaderSrc}, audioSrc: ${audioRef.current ? audioRef.current.src : 'no ref'}`);
+
+        if (audioRef.current && audioState.audioFile && currentShaderSrc) {
+            audioRef.current.loop = audioState.isLooping;
+
+            if (audioState.isPlaying && !audioState.isAnalyzing) {
+                // Double check if audio element has a valid src, sometimes it might be reset
+                if (!audioRef.current.src || audioRef.current.src === window.location.href) { // Checking against location.href as some browsers set src to page URL if empty
+                    console.warn('[AUDIO SYNC Playback Effect] Audio src is missing or invalid. Re-attaching from audioState.audioFile.url if available.');
+                    // This case should ideally be handled by AudioAnalysisManager ensuring src is set
+                    // but as a fallback:
+                    if (audioState.audioFile.url) { // Assuming audioFile object might have a URL if re-attachment is needed
+                        audioRef.current.src = audioState.audioFile.url;
+                    } else {
+                        console.error('[AUDIO SYNC Playback Effect] Cannot play, audio src is invalid and no backup URL in audioState.audioFile.');
+                        setAudioState(prev => ({ ...prev, isPlaying: false })); // Prevent trying to play
+                        return;
+                    }
+                }
+
+                if (audioRef.current.paused) {
+                    console.log('[AUDIO SYNC Playback Effect] Attempting to play audio. Current time:', audioState.currentTime);
+                    if (audioRef.current.currentTime !== audioState.currentTime) {
+                        audioRef.current.currentTime = audioState.currentTime;
+                    }
+                    audioRef.current.play().then(() => {
+                        console.log("[AUDIO SYNC Playback Effect] Playback started successfully.");
+                    }).catch(error => {
+                        console.warn("[AUDIO SYNC Playback Effect] Audio play attempt failed.", error);
+                        setAudioState(prev => ({ ...prev, isPlaying: false }));
+                    });
+                }
+            } else { // Not playing or is analyzing
+                if (!audioRef.current.paused) {
+                    console.log('[AUDIO SYNC Playback Effect] Pausing audio.');
+                    audioRef.current.pause();
+                }
+            }
+        } else {
+            if (audioRef.current && !audioRef.current.paused) {
+                console.log('[AUDIO SYNC Playback Effect] Conditions not met (no audioFile, or no currentShaderSrc, or analyzing), ensuring audio is paused.');
+                audioRef.current.pause();
+            }
+        }
+    }, [
+        audioState.audioFile,
+        audioState.isPlaying,
+        audioState.isLooping,
+        audioState.currentTime,
+        audioState.isAnalyzing,
+        currentShaderSrc
+    ]);
 
     // Handle file upload
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Use AudioAnalysisManager for file handling and analysis
+        console.log('[AUDIO SYNC] File selected. Resetting state and preparing for new audio.');
+        // Update state to reflect loading and stop current playback
+        setAudioState(prev => ({
+            ...prev,
+            audioFile: null,
+            isPlaying: false,
+            isAnalyzing: true,
+            currentTime: 0
+        }));
+
+        if (audioRef.current) {
+            if (!audioRef.current.paused) {
+                audioRef.current.pause();
+            }
+            audioRef.current.src = ''; // Detach old source to prevent issues
+            audioRef.current.removeAttribute('src'); // Further ensure it's cleared
+            audioRef.current.load(); // Reset internal state of audio element
+            console.log('[AUDIO SYNC] Audio element reset.');
+        }
+
+        console.log('[AUDIO SYNC] Calling AudioAnalysisManager.setAudioFile');
         await AudioAnalysisManager.setAudioFile(file, audioRef.current);
+        console.log('[AUDIO SYNC] AudioAnalysisManager.setAudioFile completed. Expecting state update via subscription.');
+        // AudioAnalysisManager's subscription is now responsible for setting isPlaying to true
+        // which will trigger the playback useEffect.
     };
 
     // Handle playback controls
@@ -121,21 +183,19 @@ const AudioShaderSync = () => {
         AudioAnalysisManager.toggleLooping(audioRef.current);
     };
 
-    // Handle shader selection
-    const handleShaderChange = async (e) => {
+    // Handle shader selection from dropdown
+    const handleShaderChange = (e) => {
         const shaderId = e.target.value;
-
-        // Clear custom shader state when selecting from presets
-        setCustomShader(null);
-
-        // Update selected shader state
-        setSelectedShader(shaderId);
-
-        // Load the shader source
-        await loadShaderSource(shaderId);
+        console.log(`[ShaderChange] Selected library shader: ${shaderId}`);
+        setCustomShader(null); // Clear any active custom shader code from editor's perspective
+        // currentShaderSrc will be set to null temporarily if the visualizer is unmounted due to key change,
+        // then loadShaderSource (triggered by useEffect) will provide the new src.
+        // Or, if we want to avoid a flash of no visualizer, we could set isLoadingShader here.
+        // For now, rely on the key change and conditional rendering.
+        setSelectedShader(shaderId); // This will trigger the useEffect above to load the shader
     };
 
-    // Load shader source based on ID
+    // Load shader source based on ID (for library shaders)
     const loadShaderSource = async (shaderId) => {
         try {
             setIsLoadingShader(true);
@@ -189,13 +249,6 @@ const AudioShaderSync = () => {
             setIsLoadingShader(false);
         }
     };
-
-    // Load the default shader on mount
-    useEffect(() => {
-        if (availableShaders.length > 0) {
-            loadShaderSource(selectedShader);
-        }
-    }, [availableShaders]);
 
     // Helper function to wrap ShaderToy GLSL code
     const wrapShaderToyCode = (shaderToyCode) => {
@@ -298,40 +351,30 @@ void main() {
 
     // Apply custom shader
     const applyCustomShader = (shaderCode) => {
-        if (!shaderCode) {
-            // Clear custom shader and restore selected library shader
+        if (!shaderCode || shaderCode.trim() === '') {
+            console.log("[CustomShader] Cleared custom shader. Reverting to last selected library shader or default.");
             setCustomShader(null);
-            setTempCustomShader('');
+            setTempCustomShader(''); // Clear editor
 
-            // Reload the previously selected library shader
-            if (selectedShader && availableShaders.length > 0) {
-                loadShaderSource(selectedShader);
-            } else if (availableShaders.length > 0) {
-                // Fallback to the first available shader if none was selected
-                const defaultShader = availableShaders[0].id;
-                setSelectedShader(defaultShader);
-                loadShaderSource(defaultShader);
-            }
+            // Find the first non-custom shader in the available shaders list as a fallback or use a default.
+            // For a more robust revert, you might want to store the last selected *library* shader.
+            const firstLibraryShader = availableShaders.find(s => !s.id.startsWith('custom-'));
+            const revertShaderId = firstLibraryShader ? firstLibraryShader.id : 'neonBar'; // Default fallback
+
+            setSelectedShader(revertShaderId); // This will trigger the useEffect to load the library shader
+            // currentShaderSrc will be updated by the loadShaderSource call from the useEffect
             return;
         }
 
-        // Generate a unique key for the custom shader to force re-rendering
         const customKey = `custom-${Date.now()}`;
-
-        // Mark as using a custom shader
-        setCustomShader(shaderCode);
-
-        // Wrap the shader code for actual use
         const wrappedShader = wrapShaderToyCode(shaderCode);
 
-        // Force rerender by using a new key
-        setSelectedShader(customKey);
-
-        // Update the current shader source
-        setCurrentShaderSrc(wrappedShader);
-
-        console.log("Applied custom shader. Original:", shaderCode);
-        console.log("Wrapped for rendering:", wrappedShader);
+        console.log(`[CustomShader] Applying custom shader. Key: ${customKey}`);
+        setCustomShader(shaderCode); // Store raw code for editor state
+        setCurrentShaderSrc(wrappedShader); // Directly set the source for the visualizer
+        setSelectedShader(customKey); // Update selectedShader to this unique key. This is crucial for the <ShaderVisualizer key={selectedShader} />
+        // This also ensures the ShaderLoadEffect for library shaders doesn't try to load it.
+        setIsLoadingShader(false); // We've manually set the source.
     };
 
     // Handle updates from the ShaderVisualizer - use useCallback to maintain stable reference
@@ -372,13 +415,19 @@ void main() {
                     {/* Left Column: Visualization */}
                     <div className={styles.canvasColumn}>
                         <div className={styles.visualizationContainer}>
-                            <ShaderVisualizer
-                                key={selectedShader}
-                                width="100%"
-                                height="100%"
-                                shaderSrc={currentShaderSrc}
-                                onUpdateUniforms={handleUniformsUpdate}
-                            />
+                            {isLoadingShader && <div className={styles.loadingOverlay}>Loading Shader...</div>}
+                            {!isLoadingShader && currentShaderSrc && (
+                                <ShaderVisualizer
+                                    key={selectedShader} // Crucial: remounts when shader ID changes
+                                    width="100%"
+                                    height="100%"
+                                    shaderSrc={currentShaderSrc}
+                                    onUpdateUniforms={handleUniformsUpdate}
+                                />
+                            )}
+                            {!isLoadingShader && !currentShaderSrc && (
+                                <div className={styles.placeholderVis}>Select a shader or apply custom code.</div>
+                            )}
                         </div>
 
                         {/* Shader Editor below visualization */}
