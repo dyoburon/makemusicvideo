@@ -1,0 +1,759 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #0D0221;
+    /* Dark retro blue/purple */
+    /* background: linear-gradient(135deg, #121212 0%, #1e1e2e 100%); */
+    /* Removed gradient */
+    color: #F0F0F0;
+    /* Light grey text */
+    font-family: 'VT323', monospace;
+    /* Retro font */
+}
+
+.pageHeader {
+    width: 100%;
+    padding: 0.75rem 2rem;
+    background-color: #000000;
+    border-bottom: 3px solid #FF00FF;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-shrink: 0;
+    z-index: 10;
+    box-shadow: 0 0 15px #FF00FF;
+}
+
+.header {
+    width: 100%;
+    padding: 0.75rem 2rem;
+    /* Adjusted padding */
+    background-color: #000000;
+    /* Solid black */
+    border-bottom: 3px solid #FF00FF;
+    /* Neon Pink border */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+    box-shadow: 0 0 15px #FF00FF;
+    /* Neon Pink glow */
+}
+
+.headerTitle {
+    font-size: 2.5rem;
+    /* Larger */
+    font-weight: normal;
+    margin: 0;
+    /* background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%); */
+    /* Removed gradient */
+    /* -webkit-background-clip: text; */
+    /* background-clip: text; */
+    color: #00FFFF;
+    /* Neon cyan */
+    text-shadow: 0 0 5px #00FFFF, 0 0 10px #00FFFF;
+    /* Cyan glow */
+    letter-spacing: 1px;
+}
+
+.headerTagline {
+    margin: 0;
+    font-size: 1.2rem;
+    /* Slightly larger */
+    opacity: 1;
+    /* Make fully opaque */
+    color: #A0A0F0;
+    /* Lighter purple/blue */
+    font-family: 'Press Start 2P', cursive;
+}
+
+/* Style nav link */
+.header nav a {
+    color: #00FF00 !important;
+    /* Neon Green */
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    text-shadow: 0 0 3px #00FF00;
+}
+
+.header nav a:hover {
+    color: #000000 !important;
+    background-color: #00FF00;
+    border-color: #00FF00;
+    text-shadow: none;
+    box-shadow: 0 0 10px #00FF00, 0 0 15px #00FF00;
+}
+
+.main {
+    flex: 1;
+    width: 100%;
+    max-width: 95vw;
+    /* Changed from 1400px to allow more width */
+    margin: 0 auto;
+    padding: 2rem;
+    /* Keep padding */
+}
+
+.title {
+    font-size: 2.8rem;
+    /* Slightly larger */
+    font-weight: normal;
+    margin-bottom: 1rem;
+    text-align: center;
+    color: #FFD700;
+    /* Neon Gold */
+    font-family: 'Press Start 2P', cursive;
+    text-shadow: 0 0 5px #FFD700, 0 0 8px #FF00FF;
+    /* Gold/Pink glow */
+}
+
+.subtitle {
+    font-size: 1.3rem;
+    /* Larger subtitle */
+    font-weight: normal;
+    opacity: 1;
+    /* Full opacity */
+    margin-bottom: 2.5rem;
+    text-align: center;
+    color: #C0C0FF;
+    /* Light lavender */
+}
+
+.controlsPanel {
+    background-color: rgba(10, 0, 30, 0.7);
+    /* Dark blue translucent */
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 0;
+    /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); */
+    /* Removed default shadow */
+    border: 2px solid #00FFFF;
+    /* Neon Cyan border */
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.2);
+    /* Cyan glow */
+    width: 100%;
+}
+
+.fileUploadSection {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px dashed #FF00FF;
+    /* Neon Pink dashed separator */
+}
+
+.fileInputContainer {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.fileInput {
+    flex: 1;
+    position: relative;
+}
+
+.fileInput input {
+    /* Keep hidden */
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+}
+
+.fileInputLabel {
+    display: inline-block;
+    padding: 0.8rem 1.8rem;
+    border-radius: 4px;
+    background: linear-gradient(45deg, #FF00FF, #E600E6);
+    /* Neon Pink */
+    color: #FFFFFF;
+    font-weight: bold;
+    font-family: 'VT323', monospace;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid #FF00FF;
+    /* box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3); */
+    /* Removed old shadow */
+    box-shadow: 0 0 8px #FF00FF, inset 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.fileInputLabel:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 15px #FF00FF, 0 0 20px #FF00FF, inset 0 0 8px rgba(255, 255, 255, 0.5);
+    background: linear-gradient(45deg, #E600E6, #FF00FF);
+}
+
+/* Base Button Style */
+.baseButton {
+    padding: 0.8rem 1.8rem;
+    border-radius: 4px;
+    border-style: solid;
+    border-width: 2px;
+    font-weight: bold;
+    font-family: 'VT323', monospace;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.playButton {
+    composes: baseButton;
+    /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); */
+    /* Removed shadow */
+}
+
+/* Play state */
+.playButton.play {
+    background: linear-gradient(45deg, #00FF00, #00CC00);
+    /* Neon Green */
+    border-color: #00FF00;
+    color: #000000;
+    box-shadow: 0 0 8px #00FF00;
+}
+
+.playButton.play:hover:not(:disabled) {
+    background: linear-gradient(45deg, #00DD00, #00AA00);
+    box-shadow: 0 0 15px #00FF00;
+}
+
+/* Pause state */
+.playButton.pause {
+    background: linear-gradient(45deg, #FF0000, #CC0000);
+    /* Neon Red */
+    border-color: #FF0000;
+    color: #FFFFFF;
+    box-shadow: 0 0 8px #FF0000;
+}
+
+.playButton.pause:hover:not(:disabled) {
+    background: linear-gradient(45deg, #DD0000, #AA0000);
+    box-shadow: 0 0 15px #FF0000;
+}
+
+.playButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    background: #555565;
+    border-color: #404050;
+    color: #888898;
+}
+
+.playButton:not(:disabled):hover {
+    transform: translateY(-2px) scale(1.02);
+}
+
+.controlsRow {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.controlGroup {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 220px;
+}
+
+.controlLabel {
+    margin-bottom: 0.6rem;
+    font-weight: normal;
+    display: block;
+    color: #00FFFF;
+    /* Neon Cyan labels */
+    font-size: 1rem;
+    text-shadow: 0 0 2px #00FFFF;
+}
+
+.controlSelect {
+    padding: 0.7rem;
+    border-radius: 4px;
+    background-color: #101020;
+    /* Dark input bg */
+    border: 1px solid #00FFFF;
+    /* Neon Cyan border */
+    color: #00FFFF;
+    /* Neon Cyan text */
+    font-size: 1rem;
+    font-family: 'VT323', monospace;
+    box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.3);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2300FFFF' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.5l-4-4h8l-4 4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1em;
+}
+
+.controlSelect:focus {
+    outline: none;
+    box-shadow: inset 0 0 6px rgba(0, 255, 255, 0.5), 0 0 8px #00FFFF;
+    border-color: #5FFFFF;
+    /* Lighter cyan on focus */
+}
+
+.timeControls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.timeDisplay {
+    padding: 0.7rem 1rem;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent black */
+    border-radius: 4px;
+    font-family: 'Press Start 2P', monospace;
+    /* Pixel font */
+    color: #00FFFF;
+    /* Neon Cyan */
+    text-align: center;
+    min-width: 65px;
+    border: 1px solid #00FFFF;
+    box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.skipButton {
+    background: linear-gradient(45deg, #9900CC, #6600CC);
+    /* Purple gradient */
+    color: #FFFFFF;
+    border: 1px solid #BB00FF;
+    border-radius: 4px;
+    padding: 0.5rem 0.7rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 6px rgba(187, 0, 255, 0.5);
+}
+
+.skipButton:hover:not(:disabled) {
+    background: linear-gradient(45deg, #BB00FF, #9900CC);
+    box-shadow: 0 0 12px rgba(187, 0, 255, 0.8);
+    transform: translateY(-1px);
+}
+
+.skipButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #555565;
+    border-color: #404050;
+    box-shadow: none;
+    transform: none;
+}
+
+.activeButton {
+    background: linear-gradient(45deg, #00DD00, #00FF00) !important;
+    border-color: #00FF00 !important;
+    box-shadow: 0 0 12px #00FF00, inset 0 0 5px rgba(255, 255, 255, 0.5) !important;
+    color: #000 !important;
+    text-shadow: none !important;
+}
+
+.customShaderContainer {
+    margin-top: 1.5rem;
+    border-top: 1px dashed #FF00FF;
+    /* Pink dashed separator */
+    padding-top: 1.5rem;
+}
+
+.customShaderSummary {
+    cursor: pointer;
+    padding: 0.5rem 0;
+    font-weight: normal;
+    user-select: none;
+    color: #FF00FF;
+    /* Neon Pink */
+    font-size: 1.1rem;
+    text-shadow: 0 0 3px #FF00FF;
+    transition: color 0.2s ease;
+}
+
+.customShaderSummary:hover {
+    color: #FF55FF;
+    /* Lighter pink on hover */
+}
+
+.shaderTextarea {
+    width: 100%;
+    height: 250px;
+    /* Taller textarea */
+    background-color: #050010;
+    /* Very dark background */
+    border: 2px solid #00FF00;
+    /* Neon Green border */
+    border-radius: 4px;
+    padding: 1rem;
+    font-family: monospace;
+    /* Keep monospace for code */
+    color: #00FF00;
+    /* Neon Green text */
+    resize: vertical;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.4);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shaderTextarea:focus {
+    outline: none;
+    border-color: #AFFF9A;
+    /* Lighter green on focus */
+    box-shadow: inset 0 0 12px rgba(0, 255, 0, 0.6), 0 0 10px #00FF00;
+}
+
+.visualizationContainer {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    /* max-width: 1200px; */
+    /* Removed max-width to allow full column width */
+    margin: 0 auto 2rem auto;
+    /* Add bottom margin */
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); */
+    /* Removed shadow */
+    border: 3px solid #00FFFF;
+    /* Neon Cyan border */
+    box-shadow: 0 0 20px #00FFFF, inset 0 0 10px rgba(0, 255, 255, 0.2);
+    /* Cyan glow */
+    flex-grow: 1;
+    min-height: 700px;
+    /* Increased from 400px for larger size */
+    /* width: 100%; */
+    /* Removed duplicate width property */
+    display: flex;
+}
+
+.visualizationContainer>canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.footer {
+    width: 100%;
+    padding: 1rem 0;
+    text-align: center;
+    opacity: 1;
+    /* Full opacity */
+    font-size: 0.9rem;
+    border-top: 3px solid #FF00FF;
+    /* Neon pink border */
+    background-color: #000000;
+    /* Solid black */
+    color: #A0A0F0;
+    box-shadow: 0 0 15px #FF00FF;
+    /* Neon pink glow */
+}
+
+/* Removed pulse animation and .active class */
+
+/* Added styles for refactored elements */
+.navLink {
+    color: #00FF00 !important;
+    /* Neon Green */
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 5px 10px;
+    margin-right: 20px;
+    /* Kept margin */
+    border: 1px solid transparent;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    text-shadow: 0 0 3px #00FF00;
+}
+
+.navLink:hover {
+    color: #000000 !important;
+    background-color: #00FF00;
+    border-color: #00FF00;
+    text-shadow: none;
+    box-shadow: 0 0 10px #00FF00, 0 0 15px #00FF00;
+}
+
+.fileInfoDisplay {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    color: #A0A0F0;
+    /* Light purple/blue */
+    font-style: italic;
+}
+
+.loadingMessage {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    color: #FFD700;
+    /* Neon Gold for loading */
+    font-style: italic;
+}
+
+.shaderButtonsContainer {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.applyShaderButton {
+    composes: baseButton;
+    /* Inherit base button styles */
+    padding: 8px 16px;
+    font-size: 1rem;
+    width: auto;
+    background: linear-gradient(45deg, #00CC00, #00AA00);
+    /* Neon Green gradient */
+    color: #FFFFFF;
+    border-color: #00FF00;
+    text-transform: none;
+    box-shadow: 0 0 8px #00FF00;
+}
+
+.applyShaderButton:hover:not(:disabled) {
+    background: linear-gradient(45deg, #00FF00, #00DD00);
+    box-shadow: 0 0 15px #00FF00, 0 0 20px #00FF00;
+    transform: translateY(-2px);
+}
+
+.applyShaderButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #555565;
+    border-color: #404050;
+    color: #888898;
+    box-shadow: none;
+    transform: none;
+}
+
+.applyShaderButton.hasChanges {
+    background-color: #28a745;
+    color: white;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+.clearShaderButton {
+    composes: baseButton;
+    /* Inherit base button styles */
+    padding: 8px 16px;
+    font-size: 1rem;
+    /* Slightly larger text to match apply button */
+    width: auto;
+    /* Auto width */
+    background: linear-gradient(45deg, #707080, #505060);
+    /* Grey gradient */
+    color: #E0E0E0;
+    border-color: #707080;
+    text-transform: none;
+    /* Normal case for this button */
+    box-shadow: 0 0 5px #707080;
+}
+
+.clearShaderButton:hover {
+    background: linear-gradient(45deg, #FFAAAA, #FF8888);
+    box-shadow: 0 0 15px #FF0000;
+}
+
+/* Two-column Layout */
+.twoColumnLayout {
+    display: flex;
+    gap: 2rem;
+    /* Space between columns */
+    margin-top: 2rem;
+    /* Space above the two-column section */
+    align-items: flex-start;
+    /* Align items to the top */
+}
+
+.canvasColumn {
+    flex: 3;
+    /* Canvas takes more space */
+    display: flex;
+    /* To allow visualizationContainer to define its own height */
+    flex-direction: column;
+}
+
+.controlsColumn {
+    flex: 2;
+    /* Controls take less space */
+    display: flex;
+    flex-direction: column;
+}
+
+/* End Added styles */
+
+/* New styles for AudioShaderControls */
+.colorInput {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+    margin-left: 8px;
+    vertical-align: middle;
+    outline: 2px solid #00FFFF;
+    transition: all 0.2s ease;
+}
+
+.colorInput:hover {
+    transform: scale(1.05);
+    outline: 2px solid #FF00FF;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.rangeInput {
+    width: 100%;
+    margin-top: 10px;
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 5px;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.rangeInput::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #00FFFF;
+    box-shadow: 0 0 8px #00FFFF;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rangeInput::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #00FFFF;
+    box-shadow: 0 0 8px #00FFFF;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.rangeInput::-webkit-slider-thumb:hover {
+    background: #FF00FF;
+    box-shadow: 0 0 12px #FF00FF;
+    transform: scale(1.1);
+}
+
+.rangeInput::-moz-range-thumb:hover {
+    background: #FF00FF;
+    box-shadow: 0 0 12px #FF00FF;
+    transform: scale(1.1);
+}
+
+.controlGroupTitle {
+    font-size: 1.5rem;
+    font-weight: normal;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    color: #FFD700;
+    border-bottom: 1px dashed #00FFFF;
+    text-shadow: 0 0 5px #00FFFF;
+}
+
+/* Toggle switch for color control */
+.switchLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.6rem;
+    font-weight: normal;
+    color: #00FFFF;
+    font-size: 1rem;
+    text-shadow: 0 0 2px #00FFFF;
+    cursor: pointer;
+}
+
+.toggleSwitch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    margin: 0 10px;
+}
+
+.toggleInput {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggleSlider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #1a1a2e;
+    border: 1px solid #00FFFF;
+    transition: all 0.4s;
+    border-radius: 24px;
+}
+
+.toggleSlider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 2px;
+    background-color: #FF00FF;
+    transition: all 0.4s;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #FF00FF;
+}
+
+.toggleInput:checked+.toggleSlider {
+    border-color: #00FFFF;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+}
+
+.toggleInput:checked+.toggleSlider:before {
+    transform: translateX(24px);
+    background-color: #00FFFF;
+    box-shadow: 0 0 8px #00FFFF;
+}
+
+.toggleHint {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    font-style: italic;
+    color: #A0A0F0;
+}

@@ -1,0 +1,145 @@
+.shaderEditor {
+    width: 100%;
+    margin-top: 20px;
+    border-radius: 8px;
+    background-color: rgba(20, 20, 30, 0.8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    padding: 16px;
+    border: 1px solid rgba(80, 80, 120, 0.5);
+}
+
+.editorHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(80, 80, 120, 0.5);
+    padding-bottom: 8px;
+}
+
+.editorTitle {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #b8bbff;
+    margin: 0;
+}
+
+.editorInfo {
+    font-size: 0.85rem;
+    color: rgba(180, 180, 220, 0.7);
+    font-style: italic;
+}
+
+.textareaContainer {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) inset;
+}
+
+.shaderTextarea {
+    width: 100%;
+    min-height: 1000px;
+    background-color: rgba(15, 15, 25, 0.9);
+    color: #d0d0f0;
+    font-family: 'Courier New', monospace;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(80, 80, 120, 0.6);
+    resize: vertical;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.shaderTextarea:focus {
+    outline: none;
+    border-color: rgba(120, 120, 255, 0.8);
+    box-shadow: 0 0 0 2px rgba(120, 120, 255, 0.2);
+}
+
+.buttonContainer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.applyButton {
+    background: linear-gradient(to right, #4a5af8, #28d7ff);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.applyButton:hover {
+    background: linear-gradient(to right, #5a6aff, #38e7ff);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.applyButton:disabled {
+    background: linear-gradient(to right, #3a3a4a, #4a5a6a);
+    color: #7a7a8a;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.clearButton {
+    background: linear-gradient(to right, #7a3a5a, #a03a3a);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clearButton:hover {
+    background: linear-gradient(to right, #8a4a6a, #b04a4a);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clearButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Scrollbar styling */
+.shaderTextarea::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.shaderTextarea::-webkit-scrollbar-track {
+    background: rgba(20, 20, 35, 0.8);
+    border-radius: 6px;
+    border: 1px solid rgba(60, 60, 100, 0.3);
+}
+
+.shaderTextarea::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #4a5af8, #28d7ff);
+    border-radius: 6px;
+    border: 2px solid rgba(15, 15, 25, 0.9);
+}
+
+.shaderTextarea::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #5a6aff, #38e7ff);
+}
+
+.shaderTextarea::-webkit-scrollbar-corner {
+    background: rgba(15, 15, 25, 0.9);
+}
+
+/* Firefox scrollbar support */
+.shaderTextarea {
+    scrollbar-width: thin;
+    scrollbar-color: #4a5af8 rgba(20, 20, 35, 0.8);
+}
