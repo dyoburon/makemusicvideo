@@ -146,7 +146,8 @@ const ShaderVisualizer = ({
     audioAnalysis = null,
     audioState = null,
     shaderSrc,
-    onUpdateUniforms
+    onUpdateUniforms,
+    resolutionScale = 1.0 // New prop with default value 1.0 (no scaling)
 }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -260,15 +261,15 @@ const ShaderVisualizer = ({
             canvas.style.width = '100%';
             canvas.style.height = '100%';
 
-            // Set the actual size in memory (scaled for high dpi)
-            const width = Math.floor(canvasContainer.clientWidth * devicePixelRatio);
-            const height = Math.floor(canvasContainer.clientHeight * devicePixelRatio);
+            // Set the actual size in memory (scaled for high dpi and resolutionScale)
+            const actualWidth = Math.floor(canvasContainer.clientWidth * devicePixelRatio * resolutionScale);
+            const actualHeight = Math.floor(canvasContainer.clientHeight * devicePixelRatio * resolutionScale);
 
-            if (canvas.width !== width || canvas.height !== height) {
-                canvas.width = width;
-                canvas.height = height;
-                gl.viewport(0, 0, width, height);
-                setResolution([width, height]);
+            if (canvas.width !== actualWidth || canvas.height !== actualHeight) {
+                canvas.width = actualWidth;
+                canvas.height = actualHeight;
+                gl.viewport(0, 0, actualWidth, actualHeight);
+                setResolution([actualWidth, actualHeight]);
             }
         };
 

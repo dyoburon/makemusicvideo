@@ -703,6 +703,7 @@ void main() {
                                     key={selectedShader}
                                     shaderSrc={currentShaderSrc}
                                     onUpdateUniforms={handleUniformsUpdate}
+                                    resolutionScale={0.75}
                                 />
                             )}
                             {!isLoadingShader && !currentShaderSrc && (
