@@ -403,8 +403,7 @@ void main() {
 
             {/* Header */}
             <header className={styles.pageHeader} style={{ position: 'relative', zIndex: 10 }}>
-                <h1 className={styles.headerTitle}>afk.ai</h1>
-                <p className={styles.headerTagline}>Animate Faster.</p>
+                <h1 className={styles.headerTitle}>makemusic.video</h1>
             </header>
 
             <main className={styles.main}>
