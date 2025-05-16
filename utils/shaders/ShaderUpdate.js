@@ -12,10 +12,12 @@ const DEFAULT_COLOR_SMOOTHING_DURATION = 1000; // Longer duration for color tran
 const DEFAULT_CAMERA_SPEED_SMOOTHING_DURATION = 300; // Reduced for faster response to transients
 
 // Camera speed control constants - now using defaults that can be overridden
-const DEFAULT_BASE_CAMERA_SPEED = 1.2;
-const DEFAULT_MAX_CAMERA_SPEED_BOOST_FACTOR = 2.5; // Increased for more dramatic acceleration (1.2 * 2.5 = 3.0)
-const DEFAULT_TRANSIENT_THRESHOLD_FOR_SPEED_BOOST = 0.1; // Lowered to make it more sensitive to transients
-const DEFAULT_ENERGY_BOOST_FACTOR = 0.05; // Factor for energy's influence on camera speed
+const DEFAULT_BASE_CAMERA_SPEED = 1.2; // Reverted from 1.8
+const DEFAULT_MAX_CAMERA_SPEED_BOOST_FACTOR = 2.5;
+const DEFAULT_TRANSIENT_THRESHOLD_FOR_SPEED_BOOST = 0.1;
+const DEFAULT_ENERGY_BOOST_FACTOR = 0.05;
+
+// IDLE_ANIMATION_PERIOD constant removed
 
 // Export smoothedValues to allow direct manipulation from ShaderManager
 export const smoothedValues = {
@@ -41,39 +43,39 @@ export const smoothedValues = {
     },
     // Add new color states
     color1: {
-        r: { current: 0.4, target: 0.4, lastUpdateTime: 0 },
-        g: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
+        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
+        g: { current: 0.8, target: 0.8, lastUpdateTime: 0 },
         b: { current: 0.2, target: 0.2, lastUpdateTime: 0 }
     },
     color2: {
-        r: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
-        g: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
-        b: { current: 0.8, target: 0.8, lastUpdateTime: 0 }
+        r: { current: 0.0, target: 0.0, lastUpdateTime: 0 },
+        g: { current: 0.7, target: 0.7, lastUpdateTime: 0 },
+        b: { current: 0.3, target: 0.3, lastUpdateTime: 0 }
     },
     color3: {
-        r: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
-        g: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
-        b: { current: 0.8, target: 0.8, lastUpdateTime: 0 }
+        r: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
+        g: { current: 0.9, target: 0.9, lastUpdateTime: 0 },
+        b: { current: 0.1, target: 0.1, lastUpdateTime: 0 }
     },
     fogColor: {
-        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
-        g: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
-        b: { current: 0.15, target: 0.15, lastUpdateTime: 0 }
+        r: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
+        g: { current: 0.15, target: 0.15, lastUpdateTime: 0 },
+        b: { current: 0.05, target: 0.05, lastUpdateTime: 0 }
     },
     glowColor: {
-        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
-        g: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
-        b: { current: 0.2, target: 0.2, lastUpdateTime: 0 }
+        r: { current: 0.0, target: 0.0, lastUpdateTime: 0 },
+        g: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
+        b: { current: 0.1, target: 0.1, lastUpdateTime: 0 }
     },
     // Tunnel breathing effect parameters
     breathingRate: {
-        current: 2.0,
-        target: 2.0,
+        current: 2.0, // Reverted from 0.75
+        target: 2.0,  // Reverted from 0.75
         lastUpdateTime: 0
     },
     breathingAmount: {
-        current: 6.0,
-        target: 6.0,
+        current: 6.0, // Reverted from 15.0
+        target: 6.0,  // Reverted from 15.0
         lastUpdateTime: 0
     },
     cameraSpeed: {
@@ -249,302 +251,187 @@ function getSmoothColor(colorName, targetColor, now) {
 export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debugOptions = {}) {
     const now = Date.now();
 
-    // If not playing or no analysis data, return default values with smooth transitions
-    if (!isPlaying || !audioAnalysis) {
-        const defaultScalar = {
-            energy: getSmoothValue('energy', 0.5, now),
-            lowEnergy: getSmoothValue('lowEnergy', 0.5, now),
-            highEnergy: getSmoothValue('highEnergy', 0.5, now),
-            transients: getSmoothValue('transients', 0, now),
-            time: currentTime
-        };
-        // Also return current (smoothed) colors
-        return {
-            ...defaultScalar,
-            uColor1: { r: smoothedValues.color1.r.current, g: smoothedValues.color1.g.current, b: smoothedValues.color1.b.current },
-            uColor2: { r: smoothedValues.color2.r.current, g: smoothedValues.color2.g.current, b: smoothedValues.color2.b.current },
-            uColor3: { r: smoothedValues.color3.r.current, g: smoothedValues.color3.g.current, b: smoothedValues.color3.b.current },
-            uFogColor: { r: smoothedValues.fogColor.r.current, g: smoothedValues.fogColor.g.current, b: smoothedValues.fogColor.b.current },
-            uGlowColor: { r: smoothedValues.glowColor.r.current, g: smoothedValues.glowColor.g.current, b: smoothedValues.glowColor.b.current },
-        };
+    // Step 1: Determine base audio-reactive values.
+    // These default to idle values if audio is not playing or analysis is unavailable.
+    let audioDrivenEnergy = 0.5;
+    let audioDrivenLowEnergy = 0.5;
+    let audioDrivenHighEnergy = 0.5;
+    let audioDrivenTransients = 0;
+
+    // Step 2: If audio is playing, process it and potentially trigger audio-reactive events.
+    if (isPlaying && audioAnalysis) {
+        const processedAudio = { ...audioAnalysis, currentTime };
+        const liveRawUniforms = processAudioDataForShader(processedAudio);
+
+        audioDrivenEnergy = liveRawUniforms.energy;
+        audioDrivenLowEnergy = liveRawUniforms.lowEnergy;
+        audioDrivenHighEnergy = liveRawUniforms.highEnergy;
+        audioDrivenTransients = liveRawUniforms.transients;
+
+        // --- Transient-based Color Change Logic (only active if playing) ---
+        const effectiveTransientStrengthForColor = liveRawUniforms.transients * smoothedValues.transientEffect.current;
+        const newTransientDetected = effectiveTransientStrengthForColor > TRANSIENT_THRESHOLD;
+        const sufficientTimePassed = (now - lastTransientColorChangeTime) > MIN_COLOR_CHANGE_INTERVAL;
+
+        if (newTransientDetected && sufficientTimePassed) {
+            const useColorControls = smoothedValues.useColorControls.current;
+            if (useColorControls) {
+                const c1 = { r: smoothedValues.color1.r.current, g: smoothedValues.color1.g.current, b: smoothedValues.color1.b.current };
+                const c2 = { r: smoothedValues.color2.r.current, g: smoothedValues.color2.g.current, b: smoothedValues.color2.b.current };
+                const c3 = { r: smoothedValues.color3.r.current, g: smoothedValues.color3.g.current, b: smoothedValues.color3.b.current };
+
+                smoothedValues.color1.r.target = c2.r * (0.9 + 0.2 * Math.random());
+                smoothedValues.color1.g.target = c2.g * (0.9 + 0.2 * Math.random());
+                smoothedValues.color1.b.target = c2.b * (0.9 + 0.2 * Math.random());
+                smoothedValues.color2.r.target = c3.r * (0.9 + 0.2 * Math.random());
+                smoothedValues.color2.g.target = c3.g * (0.9 + 0.2 * Math.random());
+                smoothedValues.color2.b.target = c3.b * (0.9 + 0.2 * Math.random());
+                smoothedValues.color3.r.target = c1.r * (0.9 + 0.2 * Math.random());
+                smoothedValues.color3.g.target = c1.g * (0.9 + 0.2 * Math.random());
+                smoothedValues.color3.b.target = c1.b * (0.9 + 0.2 * Math.random());
+
+                smoothedValues.fogColor.r.target = smoothedValues.fogColor.r.current * (0.95 + 0.1 * Math.random());
+                smoothedValues.fogColor.g.target = smoothedValues.fogColor.g.current * (0.95 + 0.1 * Math.random());
+                smoothedValues.fogColor.b.target = smoothedValues.fogColor.b.current * (0.95 + 0.1 * Math.random());
+                smoothedValues.glowColor.r.target = smoothedValues.glowColor.r.current * (0.95 + 0.1 * Math.random());
+                smoothedValues.glowColor.g.target = smoothedValues.glowColor.g.current * (0.95 + 0.1 * Math.random());
+                smoothedValues.glowColor.b.target = smoothedValues.glowColor.b.current * (0.95 + 0.1 * Math.random());
+            } else { // Random colors
+                smoothedValues.color1.r.target = randomRange(0.2, 1.0);
+                smoothedValues.color1.g.target = randomRange(0.2, 1.0);
+                smoothedValues.color1.b.target = randomRange(0.2, 1.0);
+                smoothedValues.color2.r.target = randomRange(0.2, 1.0);
+                smoothedValues.color2.g.target = randomRange(0.2, 1.0);
+                smoothedValues.color2.b.target = randomRange(0.2, 1.0);
+                smoothedValues.color3.r.target = randomRange(0.2, 1.0);
+                smoothedValues.color3.g.target = randomRange(0.2, 1.0);
+                smoothedValues.color3.b.target = randomRange(0.2, 1.0);
+                smoothedValues.fogColor.r.target = randomRange(0.0, 0.3);
+                smoothedValues.fogColor.g.target = randomRange(0.0, 0.2);
+                smoothedValues.fogColor.b.target = randomRange(0.0, 0.4);
+                smoothedValues.glowColor.r.target = randomRange(0.1, 0.5);
+                smoothedValues.glowColor.g.target = randomRange(0.1, 0.4);
+                smoothedValues.glowColor.b.target = randomRange(0.1, 0.6);
+            }
+            lastTransientColorChangeTime = now;
+        }
     }
+    // Update lastPlayingState AFTER processing audio-dependent logic for the current frame
+    // This helps the camera speed logic detect transitions from playing to not playing or vice-versa.
+    // However, for instantaneousTargetSpeed, it's better to check current `isPlaying` state.
+    // `lastPlayingState` is used for detecting *just started* or *just stopped* scenarios.
 
-    // Process audio data for the current time
-    const processedAudio = {
-        ...audioAnalysis,
-        currentTime
-    };
 
-    // Process the data to extract shader uniform values
-    const rawUniforms = processAudioDataForShader(processedAudio);
+    // Step 3: Determine target camera speed.
+    let instantaneousTargetSpeed;
+    const currentBaseCameraSpeedTarget = smoothedValues.baseCameraSpeed.target; // Target from controls
 
-    // --- Transient-based Color Change Logic ---
-    const newTransientDetected = rawUniforms.transients > TRANSIENT_THRESHOLD;
-    const sufficientTimePassed = (now - lastTransientColorChangeTime) > MIN_COLOR_CHANGE_INTERVAL;
+    if (isPlaying && audioAnalysis) {
+        // Use current smoothed values for calculation parameters if they come from controls
+        const baseCamSpeed = getSmoothComponentValue(smoothedValues.baseCameraSpeed, smoothedValues.baseCameraSpeed.target, now, DEFAULT_SMOOTHING_DURATION);
+        const maxBoost = getSmoothComponentValue(smoothedValues.maxCameraSpeedBoostFactor, smoothedValues.maxCameraSpeedBoostFactor.target, now, DEFAULT_SMOOTHING_DURATION);
+        const transientThresh = getSmoothComponentValue(smoothedValues.transientThresholdForSpeedBoost, smoothedValues.transientThresholdForSpeedBoost.target, now, DEFAULT_SMOOTHING_DURATION);
+        const energyBoostFactor = getSmoothComponentValue(smoothedValues.energyBoostFactor, smoothedValues.energyBoostFactor.target, now, DEFAULT_SMOOTHING_DURATION);
+        const transientEffectControl = getSmoothComponentValue(smoothedValues.transientEffect, smoothedValues.transientEffect.target, now, DEFAULT_SMOOTHING_DURATION);
 
-    // Apply custom transient effect multiplier to make transient effects more/less pronounced
-    const transientStrength = rawUniforms.transients * smoothedValues.transientEffect.current;
+        const transientStrength = audioDrivenTransients * transientEffectControl;
 
-    if (newTransientDetected && sufficientTimePassed) {
-        // Check if we should use color controls or random colors
-        const useColorControls = smoothedValues.useColorControls.current;
+        instantaneousTargetSpeed = baseCamSpeed;
+        const energyBoost = audioDrivenEnergy * energyBoostFactor;
 
-        if (useColorControls) {
-            // Using user-defined colors from color controls
-            // Save the current color states
-            const currentColor1 = {
-                r: smoothedValues.color1.r.current,
-                g: smoothedValues.color1.g.current,
-                b: smoothedValues.color1.b.current
-            };
+        if (!lastPlayingState) { // Just started playing
+            instantaneousTargetSpeed = baseCamSpeed * 2.0; // Initial acceleration
+        }
 
-            const currentColor2 = {
-                r: smoothedValues.color2.r.current,
-                g: smoothedValues.color2.g.current,
-                b: smoothedValues.color2.b.current
-            };
-
-            const currentColor3 = {
-                r: smoothedValues.color3.r.current,
-                g: smoothedValues.color3.g.current,
-                b: smoothedValues.color3.b.current
-            };
-
-            // Rotate the colors (1→2, 2→3, 3→1) with slight variations to add some dynamism
-            // Color1 gets Color2 with variation
-            smoothedValues.color1.r.target = currentColor2.r * (0.9 + 0.2 * Math.random());
-            smoothedValues.color1.g.target = currentColor2.g * (0.9 + 0.2 * Math.random());
-            smoothedValues.color1.b.target = currentColor2.b * (0.9 + 0.2 * Math.random());
-
-            // Color2 gets Color3 with variation
-            smoothedValues.color2.r.target = currentColor3.r * (0.9 + 0.2 * Math.random());
-            smoothedValues.color2.g.target = currentColor3.g * (0.9 + 0.2 * Math.random());
-            smoothedValues.color2.b.target = currentColor3.b * (0.9 + 0.2 * Math.random());
-
-            // Color3 gets Color1 with variation
-            smoothedValues.color3.r.target = currentColor1.r * (0.9 + 0.2 * Math.random());
-            smoothedValues.color3.g.target = currentColor1.g * (0.9 + 0.2 * Math.random());
-            smoothedValues.color3.b.target = currentColor1.b * (0.9 + 0.2 * Math.random());
-
-            // Keep fog and glow colors from their current values with minor variations
-            // This maintains the user-selected colors while adding some visual interest
-            smoothedValues.fogColor.r.target = smoothedValues.fogColor.r.current * (0.95 + 0.1 * Math.random());
-            smoothedValues.fogColor.g.target = smoothedValues.fogColor.g.current * (0.95 + 0.1 * Math.random());
-            smoothedValues.fogColor.b.target = smoothedValues.fogColor.b.current * (0.95 + 0.1 * Math.random());
-
-            smoothedValues.glowColor.r.target = smoothedValues.glowColor.r.current * (0.95 + 0.1 * Math.random());
-            smoothedValues.glowColor.g.target = smoothedValues.glowColor.g.current * (0.95 + 0.1 * Math.random());
-            smoothedValues.glowColor.b.target = smoothedValues.glowColor.b.current * (0.95 + 0.1 * Math.random());
-
-            if (debugOptions.shouldLog) {
-                console.log(`[COLOR CHANGE] New transient triggered color rotation at ${now}`);
+        if (transientStrength > transientThresh) {
+            const effectRange = 1.0 - transientThresh;
+            const safeEffectRange = Math.max(effectRange, 0.0001);
+            const transientEffectMapped = Math.min(1.0, (transientStrength - transientThresh) / safeEffectRange);
+            const currentBoostFactor = 1.0 + transientEffectMapped * (maxBoost - 1.0);
+            instantaneousTargetSpeed = baseCamSpeed * currentBoostFactor + energyBoost;
+            if (transientStrength > 0.4) {
+                instantaneousTargetSpeed *= 1.2; // Extra pulse
             }
         } else {
-            // Using completely random colors
-            // Update target colors only on a new, significant transient
-            smoothedValues.color1.r.target = randomRange(0.2, 1.0);
-            smoothedValues.color1.g.target = randomRange(0.2, 1.0);
-            smoothedValues.color1.b.target = randomRange(0.2, 1.0);
-
-            smoothedValues.color2.r.target = randomRange(0.2, 1.0);
-            smoothedValues.color2.g.target = randomRange(0.2, 1.0);
-            smoothedValues.color2.b.target = randomRange(0.2, 1.0);
-
-            smoothedValues.color3.r.target = randomRange(0.2, 1.0);
-            smoothedValues.color3.g.target = randomRange(0.2, 1.0);
-            smoothedValues.color3.b.target = randomRange(0.2, 1.0);
-
-            // Fog colors should generally be darker
-            smoothedValues.fogColor.r.target = randomRange(0.0, 0.3);
-            smoothedValues.fogColor.g.target = randomRange(0.0, 0.2);
-            smoothedValues.fogColor.b.target = randomRange(0.0, 0.4);
-
-            // Glow colors can be a bit more vibrant but still somewhat controlled
-            smoothedValues.glowColor.r.target = randomRange(0.1, 0.5);
-            smoothedValues.glowColor.g.target = randomRange(0.1, 0.4);
-            smoothedValues.glowColor.b.target = randomRange(0.1, 0.6);
-
-            if (debugOptions.shouldLog) {
-                console.log(`[COLOR CHANGE] New transient triggered random color generation at ${now}`);
-            }
+            instantaneousTargetSpeed += energyBoost;
         }
-
-        lastTransientColorChangeTime = now; // Record the time of this color change
-    }
-    // --- End Color Change Logic ---
-
-    // ADD THIS LOGGING BLOCK
-    if (debugOptions.shouldLog) {
-        console.log(`[ShaderUpdate AudioReactColorDebug] Raw Uniforms: ` +
-            `Energy: ${rawUniforms.energy.toFixed(3)}, ` +
-            `Transients: ${rawUniforms.transients.toFixed(3)}. ` +
-            `Effective Controls: ` +
-            `EnergyColorEffect: ${smoothedValues.energyColorEffect.current.toFixed(3)}, ` +
-            `TransientColorEffect: ${smoothedValues.transientColorEffect.current.toFixed(3)}, ` +
-            `UseColorControls: ${smoothedValues.useColorControls.current}`
-        );
-    }
-
-    // --- Camera Speed Logic ---
-    // Get the current dynamic values from smoothedValues
-    const baseCameraSpeed = smoothedValues.baseCameraSpeed.current;
-    const maxCameraSpeedBoostFactor = smoothedValues.maxCameraSpeedBoostFactor.current;
-    const transientThresholdForSpeedBoost = smoothedValues.transientThresholdForSpeedBoost.current;
-    const energyBoostFactor = smoothedValues.energyBoostFactor.current;
-
-    // Calculate the speed the camera *would* ideally go to based on current transients
-    let instantaneousTargetSpeed = baseCameraSpeed;
-    const energyBoost = rawUniforms.energy * energyBoostFactor; // Apply the adjustable energyBoostFactor
-
-    // If audio just started playing, give an initial acceleration boost
-    if (isPlaying && !lastPlayingState) {
-        instantaneousTargetSpeed = baseCameraSpeed * 2.0; // Initial acceleration when playback starts
-        if (debugOptions.shouldLog) {
-            console.log(`[CAMERA SPEED] Playback started - initial acceleration boost applied`);
-        }
-    }
-    lastPlayingState = isPlaying;
-
-    if (transientStrength > transientThresholdForSpeedBoost) {
-        // Map transient strength (above threshold) to a boost multiplier
-        // transientEffect will be 0 when transientStrength is at threshold, up to 1
-        const effectRange = 1.0 - transientThresholdForSpeedBoost;
-        // Ensure effectRange is not zero to prevent division by zero if threshold is 1.0
-        const safeEffectRange = Math.max(effectRange, 0.0001);
-        const transientEffect = Math.min(1.0, (transientStrength - transientThresholdForSpeedBoost) / safeEffectRange);
-
-        // The boost factor scales from 1.0 (no boost) to maxCameraSpeedBoostFactor
-        const currentBoostFactor = 1.0 + transientEffect * (maxCameraSpeedBoostFactor - 1.0);
-
-        // Combine transient-based speed with energy-based boost
-        instantaneousTargetSpeed = baseCameraSpeed * currentBoostFactor + energyBoost;
-
-        // Additional pulse boost on strong transients
-        if (transientStrength > 0.4) {
-            instantaneousTargetSpeed *= 1.2; // Extra boost for strong beats
-        }
+        instantaneousTargetSpeed = Math.max(instantaneousTargetSpeed, baseCamSpeed);
     } else {
-        // Even without transients, let energy influence the speed somewhat, but with reduced effect
-        instantaneousTargetSpeed += energyBoost;
+        // Not playing: camera speed smoothly moves towards the current baseCameraSpeed target set by controls.
+        instantaneousTargetSpeed = currentBaseCameraSpeedTarget;
+    }
+    lastPlayingState = isPlaying; // Update for next frame's detection
+
+
+    // Step 4: Smooth ALL parameters towards their targets.
+    // Targets for audio-reactive params come from audioDrivenXXX (defaulted if not playing).
+    // Targets for control-driven params come from smoothedValues.XXX.target.
+
+    const activeSmoothingDuration = getSmoothComponentValue(smoothedValues.smoothingDuration, smoothedValues.smoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
+    const activeColorSmoothingDuration = getSmoothComponentValue(smoothedValues.colorSmoothingDuration, smoothedValues.colorSmoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
+    const activeCameraSpeedSmoothingDuration = getSmoothComponentValue(smoothedValues.cameraSpeedSmoothingDuration, smoothedValues.cameraSpeedSmoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
+
+    const finalUniforms = {
+        energy: getSmoothValue('energy', audioDrivenEnergy, now), // 'energy' etc. are keys in smoothedValues for current/target state
+        lowEnergy: getSmoothValue('lowEnergy', audioDrivenLowEnergy, now),
+        highEnergy: getSmoothValue('highEnergy', audioDrivenHighEnergy, now),
+        transients: getSmoothValue('transients', audioDrivenTransients, now),
+        time: currentTime, // This is audio currentTime, uTime (animationTime) is set in updateFrame
+
+        // Control-driven parameters
+        cameraSpeed: getSmoothComponentValue(smoothedValues.cameraSpeed, instantaneousTargetSpeed, now, activeCameraSpeedSmoothingDuration),
+        transientEffect: getSmoothComponentValue(smoothedValues.transientEffect, smoothedValues.transientEffect.target, now, activeSmoothingDuration),
+        colorIntensity: getSmoothComponentValue(smoothedValues.colorIntensity, smoothedValues.colorIntensity.target, now, activeSmoothingDuration),
+        energyCameraEffect: getSmoothComponentValue(smoothedValues.energyCameraEffect, smoothedValues.energyCameraEffect.target, now, activeSmoothingDuration),
+        energyColorEffect: getSmoothComponentValue(smoothedValues.energyColorEffect, smoothedValues.energyColorEffect.target, now, activeSmoothingDuration),
+        transientCameraEffect: getSmoothComponentValue(smoothedValues.transientCameraEffect, smoothedValues.transientCameraEffect.target, now, activeSmoothingDuration),
+        transientColorEffect: getSmoothComponentValue(smoothedValues.transientColorEffect, smoothedValues.transientColorEffect.target, now, activeSmoothingDuration),
+
+        breathingRate: getSmoothComponentValue(smoothedValues.breathingRate, smoothedValues.breathingRate.target, now, activeSmoothingDuration),
+        breathingAmount: getSmoothComponentValue(smoothedValues.breathingAmount, smoothedValues.breathingAmount.target, now, activeSmoothingDuration),
+
+        baseCameraSpeed: getSmoothComponentValue(smoothedValues.baseCameraSpeed, smoothedValues.baseCameraSpeed.target, now, activeCameraSpeedSmoothingDuration), // It smooths its own target, effectively
+        maxCameraSpeedBoostFactor: getSmoothComponentValue(smoothedValues.maxCameraSpeedBoostFactor, smoothedValues.maxCameraSpeedBoostFactor.target, now, activeSmoothingDuration),
+        transientThresholdForSpeedBoost: getSmoothComponentValue(smoothedValues.transientThresholdForSpeedBoost, smoothedValues.transientThresholdForSpeedBoost.target, now, activeSmoothingDuration),
+        energyBoostFactor: getSmoothComponentValue(smoothedValues.energyBoostFactor, smoothedValues.energyBoostFactor.target, now, activeSmoothingDuration),
+
+        useColorControls: getSmoothComponentValue(smoothedValues.useColorControls, smoothedValues.useColorControls.target, now, activeSmoothingDuration),
+
+        // Colors (apply colorIntensity)
+        uColor1: {
+            r: Math.min(1.0, getSmoothComponentValue(smoothedValues.color1.r, smoothedValues.color1.r.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            g: Math.min(1.0, getSmoothComponentValue(smoothedValues.color1.g, smoothedValues.color1.g.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            b: Math.min(1.0, getSmoothComponentValue(smoothedValues.color1.b, smoothedValues.color1.b.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5)
+        },
+        uColor2: {
+            r: Math.min(1.0, getSmoothComponentValue(smoothedValues.color2.r, smoothedValues.color2.r.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            g: Math.min(1.0, getSmoothComponentValue(smoothedValues.color2.g, smoothedValues.color2.g.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            b: Math.min(1.0, getSmoothComponentValue(smoothedValues.color2.b, smoothedValues.color2.b.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5)
+        },
+        uColor3: {
+            r: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.r, smoothedValues.color3.r.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            g: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.g, smoothedValues.color3.g.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            b: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.b, smoothedValues.color3.b.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5)
+        },
+        uFogColor: { // Fog usually doesn't have intensity applied in the same way
+            r: getSmoothComponentValue(smoothedValues.fogColor.r, smoothedValues.fogColor.r.target, now, activeColorSmoothingDuration),
+            g: getSmoothComponentValue(smoothedValues.fogColor.g, smoothedValues.fogColor.g.target, now, activeColorSmoothingDuration),
+            b: getSmoothComponentValue(smoothedValues.fogColor.b, smoothedValues.fogColor.b.target, now, activeColorSmoothingDuration)
+        },
+        uGlowColor: { // Glow might or might not use colorIntensity
+            r: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.r, smoothedValues.glowColor.r.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            g: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.g, smoothedValues.glowColor.g.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
+            b: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.b, smoothedValues.glowColor.b.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5)
+        }
+    };
+
+    // Debug logging
+    if (debugOptions.shouldLog && now % 60 === 0) { // Approx every second
+        // console.log("[ShaderUpdate] Final Uniforms:", JSON.parse(JSON.stringify(finalUniforms)));
+        // console.log(`[ShaderUpdate] IsPlaying: ${isPlaying}, BaseCamSpeedTarget: ${currentBaseCameraSpeedTarget.toFixed(2)}, InstantTargetSpeed: ${instantaneousTargetSpeed.toFixed(2)}, FinalCamSpeed: ${finalUniforms.cameraSpeed.toFixed(2)}`);
     }
 
-    // Ensure camera never goes below baseCameraSpeed (never goes backward)
-    instantaneousTargetSpeed = Math.max(instantaneousTargetSpeed, baseCameraSpeed);
-
-    // For smoothing, use either current speed or new target, whichever is higher
-    // This ensures we never decelerate below our current speed (no backward motion)
-    const finalTargetSpeedForSmoothing = Math.max(
-        smoothedValues.cameraSpeed.current, // The current actual speed
-        instantaneousTargetSpeed            // The desired speed based on current audio
-    );
-
-    // Get the current smoothing duration from state
-    const cameraSpeedSmoothingDuration = smoothedValues.cameraSpeedSmoothingDuration.current;
-
-    // Apply smoothing to camera speed - this smooths acceleration only
-    const smoothedCameraSpeed = getSmoothComponentValue(
-        smoothedValues.cameraSpeed,         // The state object for cameraSpeed
-        finalTargetSpeedForSmoothing,       // The new target, which won't cause deceleration
-        now,
-        cameraSpeedSmoothingDuration
-    );
-
-    // Log camera speed changes (every ~60 frames)
-    if (debugOptions.shouldLog) {
-        console.log(`[CAMERA SPEED] Transient: ${transientStrength.toFixed(2)}, Target: ${instantaneousTargetSpeed.toFixed(2)}, Final: ${smoothedCameraSpeed.toFixed(2)}`);
-    }
-    // --- End Camera Speed Logic ---
-
-    // Apply smoothing to the uniforms with dynamic smoothing durations
-    const smoothingDuration = smoothedValues.smoothingDuration.current;
-    const colorSmoothingDuration = smoothedValues.colorSmoothingDuration.current;
-
-    const smoothedScalarUniforms = {
-        energy: getSmoothValue('energy', rawUniforms.energy, now),
-        lowEnergy: getSmoothValue('lowEnergy', rawUniforms.lowEnergy, now),
-        highEnergy: getSmoothValue('highEnergy', rawUniforms.highEnergy, now),
-        transients: getSmoothValue('transients', rawUniforms.transients, now),
-        time: currentTime,
-        // Add these new parameters
-        transientEffect: getSmoothComponentValue(smoothedValues.transientEffect, smoothedValues.transientEffect.target, now, smoothingDuration),
-        colorIntensity: getSmoothComponentValue(smoothedValues.colorIntensity, smoothedValues.colorIntensity.target, now, smoothingDuration),
-        energyCameraEffect: getSmoothComponentValue(smoothedValues.energyCameraEffect, smoothedValues.energyCameraEffect.target, now, smoothingDuration),
-        energyColorEffect: getSmoothComponentValue(smoothedValues.energyColorEffect, smoothedValues.energyColorEffect.target, now, smoothingDuration),
-        transientCameraEffect: getSmoothComponentValue(smoothedValues.transientCameraEffect, smoothedValues.transientCameraEffect.target, now, smoothingDuration),
-        transientColorEffect: getSmoothComponentValue(smoothedValues.transientColorEffect, smoothedValues.transientColorEffect.target, now, smoothingDuration),
-        // Add the breathing parameters
-        breathingRate: getSmoothComponentValue(smoothedValues.breathingRate, smoothedValues.breathingRate.target, now, smoothingDuration),
-        breathingAmount: getSmoothComponentValue(smoothedValues.breathingAmount, smoothedValues.breathingAmount.target, now, smoothingDuration),
-        // Add new camera movement configuration parameters
-        baseCameraSpeed: getSmoothComponentValue(smoothedValues.baseCameraSpeed, smoothedValues.baseCameraSpeed.target, now, smoothingDuration),
-        maxCameraSpeedBoostFactor: getSmoothComponentValue(smoothedValues.maxCameraSpeedBoostFactor, smoothedValues.maxCameraSpeedBoostFactor.target, now, smoothingDuration),
-        transientThresholdForSpeedBoost: getSmoothComponentValue(smoothedValues.transientThresholdForSpeedBoost, smoothedValues.transientThresholdForSpeedBoost.target, now, smoothingDuration),
-        energyBoostFactor: getSmoothComponentValue(smoothedValues.energyBoostFactor, smoothedValues.energyBoostFactor.target, now, smoothingDuration),
-        cameraSpeedSmoothingDuration: getSmoothComponentValue(smoothedValues.cameraSpeedSmoothingDuration, smoothedValues.cameraSpeedSmoothingDuration.target, now, smoothingDuration),
-        colorSmoothingDuration: getSmoothComponentValue(smoothedValues.colorSmoothingDuration, smoothedValues.colorSmoothingDuration.target, now, smoothingDuration),
-        smoothingDuration: getSmoothComponentValue(smoothedValues.smoothingDuration, smoothedValues.smoothingDuration.target, now, smoothingDuration),
-        // Add color mode toggle
-        useColorControls: getSmoothComponentValue(smoothedValues.useColorControls, smoothedValues.useColorControls.target, now, smoothingDuration)
-    };
-
-    // Get the current color intensity for amplifying colors
-    const colorIntensity = smoothedValues.colorIntensity.current;
-
-    // Get smoothed color values by directly calling getSmoothComponentValue for each component
-    // Apply colorIntensity to amplify the color values, using the dynamic colorSmoothingDuration
-    const uColor1 = {
-        r: Math.min(1.0, getSmoothComponentValue(smoothedValues.color1.r, smoothedValues.color1.r.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        g: Math.min(1.0, getSmoothComponentValue(smoothedValues.color1.g, smoothedValues.color1.g.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        b: Math.min(1.0, getSmoothComponentValue(smoothedValues.color1.b, smoothedValues.color1.b.target, now, colorSmoothingDuration) * colorIntensity * 1.5)
-    };
-    const uColor2 = {
-        r: Math.min(1.0, getSmoothComponentValue(smoothedValues.color2.r, smoothedValues.color2.r.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        g: Math.min(1.0, getSmoothComponentValue(smoothedValues.color2.g, smoothedValues.color2.g.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        b: Math.min(1.0, getSmoothComponentValue(smoothedValues.color2.b, smoothedValues.color2.b.target, now, colorSmoothingDuration) * colorIntensity * 1.5)
-    };
-    const uColor3 = {
-        r: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.r, smoothedValues.color3.r.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        g: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.g, smoothedValues.color3.g.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        b: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.b, smoothedValues.color3.b.target, now, colorSmoothingDuration) * colorIntensity * 1.5)
-    };
-    const uFogColor = {
-        r: getSmoothComponentValue(smoothedValues.fogColor.r, smoothedValues.fogColor.r.target, now, colorSmoothingDuration),
-        g: getSmoothComponentValue(smoothedValues.fogColor.g, smoothedValues.fogColor.g.target, now, colorSmoothingDuration),
-        b: getSmoothComponentValue(smoothedValues.fogColor.b, smoothedValues.fogColor.b.target, now, colorSmoothingDuration)
-    };
-    const uGlowColor = {
-        r: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.r, smoothedValues.glowColor.r.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        g: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.g, smoothedValues.glowColor.g.target, now, colorSmoothingDuration) * colorIntensity * 1.5),
-        b: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.b, smoothedValues.glowColor.b.target, now, colorSmoothingDuration) * colorIntensity * 1.5)
-    };
-
-    const smoothedUniforms = {
-        ...smoothedScalarUniforms,
-        uColor1,
-        uColor2,
-        uColor3,
-        uFogColor,
-        uGlowColor,
-        cameraSpeed: smoothedCameraSpeed // Add smoothed camera speed
-    };
-
-    // Optional debug logging for breathing parameters (every 60 frames)
-    if (debugOptions.shouldLog) {
-        console.log(`[UNIFORM DEBUG] Breathing parameters:`,
-            `rate: ${smoothedUniforms.breathingRate.toFixed(2)} (target: ${smoothedValues.breathingRate.target.toFixed(2)}), ` +
-            `amount: ${smoothedUniforms.breathingAmount.toFixed(2)} (target: ${smoothedValues.breathingAmount.target.toFixed(2)})`);
-    }
-
-    // Optional debug logging
-    if (debugOptions.shouldLog) {
-        console.log(`[UNIFORM DEBUG] Time: ${currentTime.toFixed(2)}s, Uniforms:`,
-            `energy: ${smoothedUniforms.energy.toFixed(2)} (raw: ${rawUniforms.energy.toFixed(2)}), ` +
-            `lowEnergy: ${smoothedUniforms.lowEnergy.toFixed(2)} (raw: ${rawUniforms.lowEnergy.toFixed(2)}), ` +
-            `highEnergy: ${smoothedUniforms.highEnergy.toFixed(2)} (raw: ${rawUniforms.highEnergy.toFixed(2)}), ` +
-            `transients: ${smoothedUniforms.transients.toFixed(2)} (raw: ${rawUniforms.transients.toFixed(2)})`);
-    }
-
-    return smoothedUniforms;
+    return finalUniforms;
 }
 
 /**
@@ -601,133 +488,91 @@ export function updateFrame({
         // Calculate animation time (elapsed time since start)
         const animationTime = (now - (startTime || now)) / 1000;
 
-        // Get current audio state - combining singleton state with any passed props
-        const combinedAudioState = getAudioState(audioState);
+        // Get current audio state from AudioAnalysisManager, potentially overridden by audioState prop
+        const currentGlobalAudioState = AudioAnalysisManager.getState();
+        const combinedAudioState = {
+            analysis: audioState && audioState.analysis !== undefined ? audioState.analysis : currentGlobalAudioState.audioAnalysis,
+            currentTime: audioState && audioState.currentTime !== undefined ? audioState.currentTime : currentGlobalAudioState.currentTime,
+            isPlaying: audioState && audioState.isPlaying !== undefined ? audioState.isPlaying : currentGlobalAudioState.isPlaying,
+        };
 
-        // Log the combined state occasionally for debugging
-        if (newFrameCount % 120 === 0) {  // Every ~2 seconds at 60fps
-            console.log(`[SHADER AUDIO STATE] Combined audio state:`,
-                `isPlaying: ${combinedAudioState.isPlaying}, `,
-                `currentTime: ${combinedAudioState.currentTime}, `,
-                `analysis: ${combinedAudioState.analysis ? 'available' : 'none'}`);
-        }
-
+        // Call the refactored updateAudioUniforms
         const audioUniforms = updateAudioUniforms(
             combinedAudioState.analysis,
-            combinedAudioState.currentTime || 0,
-            combinedAudioState.isPlaying || false,
-            { shouldLog: newFrameCount % 60 === 0 } // Log every ~1 second at 60fps
+            combinedAudioState.currentTime || 0, // Ensure currentTime is a number
+            combinedAudioState.isPlaying || false, // Ensure isPlaying is a boolean
+            { shouldLog: newFrameCount % 60 === 0 }
         );
 
-        // Notify parent component of updated uniforms if needed
         if (typeof onUpdateUniforms === 'function') {
-            try {
-                onUpdateUniforms(audioUniforms);
-            } catch (callbackError) {
-                console.error('[SHADER UPDATE] Error in onUpdateUniforms callback:', callbackError);
-            }
+            onUpdateUniforms(audioUniforms);
         }
 
-        // Clear the canvas
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
-
-        // Use shader program
         shaderProgram.use();
 
-        // Set standard uniforms - safely handle missing resolution values
-        const safeResolution = resolution || [1, 1];
-        shaderProgram.setUniform1f('uTime', animationTime);
-        shaderProgram.setUniform2f('uResolution', safeResolution[0] || 1, safeResolution[1] || 1);
+        shaderProgram.setUniform1f('uTime', animationTime); // CRITICAL: This is the main animation time
+        shaderProgram.setUniform2f('uResolution', resolution[0] || 1, resolution[1] || 1);
 
-        // Set audio uniforms safely - these will be smoothly interpolated now
+        // Set all uniforms from audioUniforms object
         if (audioUniforms) {
-            if (audioUniforms.energy !== undefined) {
-                shaderProgram.setUniform1f('uEnergy', audioUniforms.energy);
-                shaderProgram.setUniform1f('energy', audioUniforms.energy);
+            // Audio-reactive
+            shaderProgram.setUniform1f('uEnergy', audioUniforms.energy);
+            shaderProgram.setUniform1f('energy', audioUniforms.energy); // common alias
+            shaderProgram.setUniform1f('uLowEnergy', audioUniforms.lowEnergy);
+            shaderProgram.setUniform1f('lowEnergy', audioUniforms.lowEnergy);
+            shaderProgram.setUniform1f('uHighEnergy', audioUniforms.highEnergy);
+            shaderProgram.setUniform1f('highEnergy', audioUniforms.highEnergy);
+            shaderProgram.setUniform1f('uTransients', audioUniforms.transients);
+            shaderProgram.setUniform1f('transients', audioUniforms.transients);
+            shaderProgram.setUniform1f('uAudioTime', audioUniforms.time); // This is audio's currentTime
+            shaderProgram.setUniform1f('audioTime', audioUniforms.time); // alias
+
+            // Control-driven
+            shaderProgram.setUniform1f('uCameraSpeed', audioUniforms.cameraSpeed);
+            shaderProgram.setUniform1f('uTransientIntensity', audioUniforms.transientEffect); // Shader uses uTransientIntensity
+            // shaderProgram.setUniform1f('uColorIntensity', audioUniforms.colorIntensity); // colorIntensity is used in JS to calc colors
+
+            shaderProgram.setUniform1f('uEnergyCameraEffect', audioUniforms.energyCameraEffect);
+            shaderProgram.setUniform1f('uEnergyColorEffect', audioUniforms.energyColorEffect);
+            shaderProgram.setUniform1f('uTransientCameraEffect', audioUniforms.transientCameraEffect);
+            shaderProgram.setUniform1f('uTransientColorEffect', audioUniforms.transientColorEffect);
+
+            shaderProgram.setUniform1f('uBreathingRate', audioUniforms.breathingRate);
+            shaderProgram.setUniform1f('uBreathingAmount', audioUniforms.breathingAmount);
+
+            // uBaseCameraSpeed etc. are not direct uniforms; they influence uCameraSpeed calculation.
+            // uUseColorControls is also not a direct uniform; it influences color calculation in JS.
+
+            // Colors
+            if (audioUniforms.uColor1) shaderProgram.setUniform3f('uColor1', audioUniforms.uColor1.r, audioUniforms.uColor1.g, audioUniforms.uColor1.b);
+            if (audioUniforms.uColor2) shaderProgram.setUniform3f('uColor2', audioUniforms.uColor2.r, audioUniforms.uColor2.g, audioUniforms.uColor2.b);
+            if (audioUniforms.uColor3) shaderProgram.setUniform3f('uColor3', audioUniforms.uColor3.r, audioUniforms.uColor3.g, audioUniforms.uColor3.b);
+            if (audioUniforms.uFogColor) shaderProgram.setUniform3f('uFogColor', audioUniforms.uFogColor.r, audioUniforms.uFogColor.g, audioUniforms.uFogColor.b);
+            if (audioUniforms.uGlowColor) shaderProgram.setUniform3f('uGlowColor', audioUniforms.uGlowColor.r, audioUniforms.uGlowColor.g, audioUniforms.uGlowColor.b);
+        }
+        // ... (rest of draw logic)
+        // Bind vertex buffer and draw
+        if (buffers && buffers.position) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+            const positionAttributeLocation = shaderProgram.getAttributeLocation('aPosition');
+            if (positionAttributeLocation !== -1) { // Check if attribute exists
+                gl.enableVertexAttribArray(positionAttributeLocation);
+                gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+                gl.drawArrays(gl.TRIANGLES, 0, 6); // Assuming a quad (2 triangles, 6 vertices)
+            } else {
+                // console.warn("[Shader Render] aPosition attribute not found in shader.");
             }
-            if (audioUniforms.lowEnergy !== undefined) {
-                shaderProgram.setUniform1f('uLowEnergy', audioUniforms.lowEnergy);
-                shaderProgram.setUniform1f('lowEnergy', audioUniforms.lowEnergy);
-            }
-            if (audioUniforms.highEnergy !== undefined) {
-                shaderProgram.setUniform1f('uHighEnergy', audioUniforms.highEnergy);
-                shaderProgram.setUniform1f('highEnergy', audioUniforms.highEnergy);
-            }
-            if (audioUniforms.transients !== undefined) {
-                shaderProgram.setUniform1f('uTransients', audioUniforms.transients);
-                shaderProgram.setUniform1f('transients', audioUniforms.transients);
-            }
-            if (audioUniforms.time !== undefined) {
-                shaderProgram.setUniform1f('uAudioTime', audioUniforms.time);
-                shaderProgram.setUniform1f('audioTime', audioUniforms.time);
-            }
-            // Pass transientEffect as uTransientIntensity
-            if (audioUniforms.transientEffect !== undefined) {
-                shaderProgram.setUniform1f('uTransientIntensity', audioUniforms.transientEffect);
-            }
-            // Set new color uniforms
-            if (audioUniforms.uColor1) {
-                shaderProgram.setUniform3f('uColor1', audioUniforms.uColor1.r, audioUniforms.uColor1.g, audioUniforms.uColor1.b);
-            }
-            if (audioUniforms.uColor2) {
-                shaderProgram.setUniform3f('uColor2', audioUniforms.uColor2.r, audioUniforms.uColor2.g, audioUniforms.uColor2.b);
-            }
-            if (audioUniforms.uColor3) {
-                shaderProgram.setUniform3f('uColor3', audioUniforms.uColor3.r, audioUniforms.uColor3.g, audioUniforms.uColor3.b);
-            }
-            if (audioUniforms.uFogColor) {
-                shaderProgram.setUniform3f('uFogColor', audioUniforms.uFogColor.r, audioUniforms.uFogColor.g, audioUniforms.uFogColor.b);
-            }
-            if (audioUniforms.uGlowColor) {
-                shaderProgram.setUniform3f('uGlowColor', audioUniforms.uGlowColor.r, audioUniforms.uGlowColor.g, audioUniforms.uGlowColor.b);
-            }
-            // Set new camera speed uniform
-            if (audioUniforms.cameraSpeed !== undefined) {
-                shaderProgram.setUniform1f('uCameraSpeed', audioUniforms.cameraSpeed);
-            }
-            // Set new effect control uniforms
-            if (audioUniforms.energyCameraEffect !== undefined) {
-                shaderProgram.setUniform1f('uEnergyCameraEffect', audioUniforms.energyCameraEffect);
-            }
-            if (audioUniforms.energyColorEffect !== undefined) {
-                shaderProgram.setUniform1f('uEnergyColorEffect', audioUniforms.energyColorEffect);
-            }
-            if (audioUniforms.transientCameraEffect !== undefined) {
-                shaderProgram.setUniform1f('uTransientCameraEffect', audioUniforms.transientCameraEffect);
-            }
-            if (audioUniforms.transientColorEffect !== undefined) {
-                shaderProgram.setUniform1f('uTransientColorEffect', audioUniforms.transientColorEffect);
-            }
-            // Set new breathing effect uniforms
-            if (audioUniforms.breathingRate !== undefined) {
-                shaderProgram.setUniform1f('uBreathingRate', audioUniforms.breathingRate);
-                if (newFrameCount % 60 === 0) {
-                    console.log(`[SHADER UPDATE] Setting uBreathingRate: ${audioUniforms.breathingRate} (target: ${smoothedValues.breathingRate.target})`);
-                }
-            }
-            if (audioUniforms.breathingAmount !== undefined) {
-                shaderProgram.setUniform1f('uBreathingAmount', audioUniforms.breathingAmount);
-                if (newFrameCount % 60 === 0) {
-                    console.log(`[SHADER UPDATE] Setting uBreathingAmount: ${audioUniforms.breathingAmount} (target: ${smoothedValues.breathingAmount.target})`);
-                }
-            }
+        } else {
+            console.warn("[Shader Render] Position buffer is missing.");
         }
 
-        // Return updated state
-        return {
-            time: animationTime,
-            frameCount: newFrameCount,
-            audioUniforms
-        };
+
+        return { time: animationTime, frameCount: newFrameCount, audioUniforms };
     } catch (error) {
         console.error('[SHADER UPDATE] Error in updateFrame:', error);
-        return {
-            time: 0,
-            frameCount: newFrameCount,
-            audioUniforms: {},
-            error
-        };
+        return { time: 0, frameCount: newFrameCount, audioUniforms: {}, error };
     }
 }
 

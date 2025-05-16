@@ -25,11 +25,11 @@ const AudioShaderSync = () => {
     const [currentShaderSrc, setCurrentShaderSrc] = useState(null);
     const [isLoadingShader, setIsLoadingShader] = useState(false);
     const [shaderParams, setShaderParams] = useState({
-        color1: { r: 0.4, g: 1.0, b: 0.2 },
-        color2: { r: 0.2, g: 1.0, b: 0.8 },
-        color3: { r: 1.0, g: 0.2, b: 0.8 },
-        fogColor: { r: 0.1, g: 0.05, b: 0.15 },
-        glowColor: { r: 0.1, g: 0.05, b: 0.2 },
+        color1: { r: 0.1, g: 0.8, b: 0.2 },
+        color2: { r: 0.0, g: 0.7, b: 0.3 },
+        color3: { r: 0.2, g: 0.9, b: 0.1 },
+        fogColor: { r: 0.05, g: 0.15, b: 0.05 },
+        glowColor: { r: 0.0, g: 0.2, b: 0.1 },
         cameraSpeed: 1.2,
         transientEffect: 0.3,
         colorIntensity: 0.5
