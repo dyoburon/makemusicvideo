@@ -451,7 +451,7 @@ void main() {
     return (
         <div className={styles.container}>
             <Head>
-                <title>Audio-Shader Sync | makemusic.video</title>
+                <title>Make Music Video Online | makemusic.video</title>
                 <meta name="description" content="Visualize audio with reactive WebGL shaders" />
             </Head>
 
