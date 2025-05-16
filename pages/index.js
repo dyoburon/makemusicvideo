@@ -60,6 +60,37 @@ const AudioShaderSync = () => {
         setAvailableShaders(ShaderManager.getAvailableShaders());
     }, []);
 
+    // New useEffect to directly update currentTime from the audio element
+    useEffect(() => {
+        const audioElement = audioRef.current;
+
+        const handleTimeUpdate = () => {
+            if (audioElement) {
+                // Update currentTime in the local state
+                setAudioState(prev => {
+                    // Only update if the time has actually changed to avoid unnecessary re-renders
+                    if (prev.currentTime !== audioElement.currentTime) {
+                        return { ...prev, currentTime: audioElement.currentTime };
+                    }
+                    return prev;
+                });
+            }
+        };
+
+        if (audioElement) {
+            audioElement.addEventListener('timeupdate', handleTimeUpdate);
+            // Also update when playing starts, as timeupdate might not fire immediately at 0
+            audioElement.addEventListener('playing', handleTimeUpdate);
+        }
+
+        return () => {
+            if (audioElement) {
+                audioElement.removeEventListener('timeupdate', handleTimeUpdate);
+                audioElement.removeEventListener('playing', handleTimeUpdate);
+            }
+        };
+    }, [audioRef.current]); // Dependency: only re-run if audioRef.current changes
+
     // useEffect to load shader source when selectedShader changes or on initial load
     useEffect(() => {
         if (selectedShader && selectedShader.startsWith('custom-')) {

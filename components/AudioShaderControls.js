@@ -85,6 +85,8 @@ const AudioShaderControls = ({
 
     // Apply all current parameters to the shader
     const applyChanges = () => {
+        console.log('[AudioShaderControls] Applying params:', JSON.parse(JSON.stringify(params)));
+
         // First, update via the ShaderManager's updateShaderParams function
         updateShaderParams(params);
 

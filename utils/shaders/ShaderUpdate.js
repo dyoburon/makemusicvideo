@@ -373,6 +373,18 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
     }
     // --- End Color Change Logic ---
 
+    // ADD THIS LOGGING BLOCK
+    if (debugOptions.shouldLog) {
+        console.log(`[ShaderUpdate AudioReactColorDebug] Raw Uniforms: ` +
+            `Energy: ${rawUniforms.energy.toFixed(3)}, ` +
+            `Transients: ${rawUniforms.transients.toFixed(3)}. ` +
+            `Effective Controls: ` +
+            `EnergyColorEffect: ${smoothedValues.energyColorEffect.current.toFixed(3)}, ` +
+            `TransientColorEffect: ${smoothedValues.transientColorEffect.current.toFixed(3)}, ` +
+            `UseColorControls: ${smoothedValues.useColorControls.current}`
+        );
+    }
+
     // --- Camera Speed Logic ---
     // Get the current dynamic values from smoothedValues
     const baseCameraSpeed = smoothedValues.baseCameraSpeed.current;

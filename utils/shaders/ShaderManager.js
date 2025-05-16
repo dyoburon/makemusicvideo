@@ -215,8 +215,8 @@ export function processAudioDataForShader(audioData) {
         return processAudioDataForShader.lastResult;
     }
 
-    // If no audio data is available, return default values
-    if (!audioData || !audioData.timeline) {
+    // If no audio data, or no analysis object within audioData, or no timeline in analysis
+    if (!audioData || !audioData.analysis || !audioData.analysis.timeline) {
         const defaultValues = {
             energy: 0.5,
             lowEnergy: 0.5,
@@ -236,8 +236,8 @@ export function processAudioDataForShader(audioData) {
     }
 
     // Find the most recent events for different categories
-    const currentTime = audioData.currentTime || 0;
-    const timeline = audioData.timeline;
+    const currentTime = audioData.currentTime || 0; // Correctly accessed from audioData root
+    const timeline = audioData.analysis.timeline; // Correctly accessed from audioData.analysis
 
     // Process recent events to get current audio state
     let lowEnergy = 0.5;
@@ -248,7 +248,7 @@ export function processAudioDataForShader(audioData) {
     const recentTransients = timeline.filter(event =>
         event.type === 'transient' &&
         event.time <= currentTime &&
-        currentTime - event.time < 0.1 // Reverted to smaller window (e.g., 200ms) for performance
+        currentTime - event.time < 0.2 // Reverted to smaller window (e.g., 200ms) for performance
     );
 
     let mostIntenseTransientTime = currentTime; // Default if no transients
@@ -275,7 +275,7 @@ export function processAudioDataForShader(audioData) {
     const recentDynamics = timeline.filter(event =>
         event.type.startsWith('dynamic_') &&
         event.time <= currentTime &&
-        currentTime - event.time < 0.3 // Reverted to smaller window (e.g., 500ms)
+        currentTime - event.time < 0.5 // Reverted to smaller window (e.g., 500ms)
     );
 
     let energy = 0.5; // Default energy
