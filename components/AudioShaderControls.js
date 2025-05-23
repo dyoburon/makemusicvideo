@@ -20,11 +20,11 @@ const AudioShaderControls = ({
     // Initialize state with default values or passed initialParams
     const [params, setParams] = useState({
         // Color controls
-        color1: initialParams.color1 || { r: 0.4, g: 1.0, b: 0.2 },
-        color2: initialParams.color2 || { r: 0.2, g: 1.0, b: 0.8 },
-        color3: initialParams.color3 || { r: 1.0, g: 0.2, b: 0.8 },
-        fogColor: initialParams.fogColor || { r: 0.1, g: 0.05, b: 0.15 },
-        glowColor: initialParams.glowColor || { r: 0.1, g: 0.05, b: 0.2 },
+        color1: initialParams.color1 || { r: 0.8, g: 0.2, b: 0.9 },
+        color2: initialParams.color2 || { r: 0.1, g: 0.6, b: 0.9 },
+        color3: initialParams.color3 || { r: 0.9, g: 0.5, b: 0.1 },
+        fogColor: initialParams.fogColor || { r: 0.15, g: 0.05, b: 0.25 },
+        glowColor: initialParams.glowColor || { r: 0.2, g: 0.1, b: 0.3 },
 
         // Camera & movement controls
         cameraSpeed: initialParams.cameraSpeed || 1.2,
@@ -239,11 +239,11 @@ const AudioShaderControls = ({
     const resetToDefaults = () => {
         const defaultParams = {
             // Default color controls
-            color1: { r: 0.4, g: 1.0, b: 0.2 },
-            color2: { r: 0.2, g: 1.0, b: 0.8 },
-            color3: { r: 1.0, g: 0.2, b: 0.8 },
-            fogColor: { r: 0.1, g: 0.05, b: 0.15 },
-            glowColor: { r: 0.1, g: 0.05, b: 0.2 },
+            color1: { r: 0.8, g: 0.2, b: 0.9 }, // Purple-magenta
+            color2: { r: 0.1, g: 0.6, b: 0.9 }, // Blue-cyan
+            color3: { r: 0.9, g: 0.5, b: 0.1 }, // Orange
+            fogColor: { r: 0.15, g: 0.05, b: 0.25 }, // Dark purple
+            glowColor: { r: 0.2, g: 0.1, b: 0.3 }, // Purple glow
             // Default camera & movement
             cameraSpeed: 1.2,
             // Default breathing settings

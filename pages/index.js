@@ -25,16 +25,16 @@ const AudioShaderSync = () => {
     const [currentShaderSrc, setCurrentShaderSrc] = useState(null);
     const [isLoadingShader, setIsLoadingShader] = useState(false);
     const [shaderParams, setShaderParams] = useState({
-        color1: { r: 0.1, g: 0.8, b: 0.2 },
-        color2: { r: 0.0, g: 0.7, b: 0.3 },
-        color3: { r: 0.2, g: 0.9, b: 0.1 },
-        fogColor: { r: 0.05, g: 0.15, b: 0.05 },
-        glowColor: { r: 0.0, g: 0.2, b: 0.1 },
+        color1: { r: 0.8, g: 0.2, b: 0.9 },
+        color2: { r: 0.1, g: 0.6, b: 0.9 },
+        color3: { r: 0.9, g: 0.5, b: 0.1 },
+        fogColor: { r: 0.15, g: 0.05, b: 0.25 },
+        glowColor: { r: 0.2, g: 0.1, b: 0.3 },
         cameraSpeed: 1.2,
         transientEffect: 0.3,
         colorIntensity: 0.5
     });
-    const [activeControlsView, setActiveControlsView] = useState('controls'); // Default to 'editor'
+    const [activeControlsView, setActiveControlsView] = useState('controls');
     const [paneSizes, setPaneSizes] = useState({ left: 40, right: 60 });
     const [isDragging, setIsDragging] = useState(false);
     const containerRef = useRef(null);
@@ -66,9 +66,7 @@ const AudioShaderSync = () => {
 
         const handleTimeUpdate = () => {
             if (audioElement) {
-                // Update currentTime in the local state
                 setAudioState(prev => {
-                    // Only update if the time has actually changed to avoid unnecessary re-renders
                     if (prev.currentTime !== audioElement.currentTime) {
                         return { ...prev, currentTime: audioElement.currentTime };
                     }
@@ -79,7 +77,6 @@ const AudioShaderSync = () => {
 
         if (audioElement) {
             audioElement.addEventListener('timeupdate', handleTimeUpdate);
-            // Also update when playing starts, as timeupdate might not fire immediately at 0
             audioElement.addEventListener('playing', handleTimeUpdate);
         }
 
@@ -89,24 +86,20 @@ const AudioShaderSync = () => {
                 audioElement.removeEventListener('playing', handleTimeUpdate);
             }
         };
-    }, [audioRef.current]); // Dependency: only re-run if audioRef.current changes
+    }, [audioRef.current]);
 
-    // useEffect to load shader source when selectedShader changes or on initial load
     useEffect(() => {
         if (selectedShader && selectedShader.startsWith('custom-')) {
             console.log(`[ShaderLoadEffect] ${selectedShader} is a custom shader. Source should already be set. No library load.`);
-            // For custom shaders, currentShaderSrc is set directly by applyCustomShader.
-            // No further action needed here by this effect.
             return;
         }
 
         if (availableShaders.length > 0 && selectedShader && !isLoadingShader) {
             console.log(`[ShaderLoadEffect] Attempting to load library shader: ${selectedShader}`);
-            loadShaderSource(selectedShader); // This is async
+            loadShaderSource(selectedShader);
         }
-    }, [availableShaders, selectedShader, isLoadingShader]); // isLoadingShader helps prevent re-entry if loadShaderSource is slow
+    }, [availableShaders, selectedShader, isLoadingShader]);
 
-    // Consolidated useEffect for managing audio playback based on state and shader readiness
     useEffect(() => {
         console.log(`[AUDIO SYNC Playback Effect] audioFile: ${!!audioState.audioFile}, isPlaying: ${audioState.isPlaying}, isAnalyzing: ${audioState.isAnalyzing}, currentShaderSrc: ${!!currentShaderSrc}, audioSrc: ${audioRef.current ? audioRef.current.src : 'no ref'}`);
 
@@ -114,16 +107,13 @@ const AudioShaderSync = () => {
             audioRef.current.loop = audioState.isLooping;
 
             if (audioState.isPlaying && !audioState.isAnalyzing) {
-                // Double check if audio element has a valid src, sometimes it might be reset
-                if (!audioRef.current.src || audioRef.current.src === window.location.href) { // Checking against location.href as some browsers set src to page URL if empty
+                if (!audioRef.current.src || audioRef.current.src === window.location.href) {
                     console.warn('[AUDIO SYNC Playback Effect] Audio src is missing or invalid. Re-attaching from audioState.audioFile.url if available.');
-                    // This case should ideally be handled by AudioAnalysisManager ensuring src is set
-                    // but as a fallback:
-                    if (audioState.audioFile.url) { // Assuming audioFile object might have a URL if re-attachment is needed
+                    if (audioState.audioFile.url) {
                         audioRef.current.src = audioState.audioFile.url;
                     } else {
                         console.error('[AUDIO SYNC Playback Effect] Cannot play, audio src is invalid and no backup URL in audioState.audioFile.');
-                        setAudioState(prev => ({ ...prev, isPlaying: false })); // Prevent trying to play
+                        setAudioState(prev => ({ ...prev, isPlaying: false }));
                         return;
                     }
                 }
@@ -140,7 +130,7 @@ const AudioShaderSync = () => {
                         setAudioState(prev => ({ ...prev, isPlaying: false }));
                     });
                 }
-            } else { // Not playing or is analyzing
+            } else {
                 if (!audioRef.current.paused) {
                     console.log('[AUDIO SYNC Playback Effect] Pausing audio.');
                     audioRef.current.pause();
@@ -161,13 +151,11 @@ const AudioShaderSync = () => {
         currentShaderSrc
     ]);
 
-    // Handle file upload
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         console.log('[AUDIO SYNC] File selected. Resetting state and preparing for new audio.');
-        // Update state to reflect loading and stop current playback
         setAudioState(prev => ({
             ...prev,
             audioFile: null,
@@ -180,57 +168,44 @@ const AudioShaderSync = () => {
             if (!audioRef.current.paused) {
                 audioRef.current.pause();
             }
-            audioRef.current.src = ''; // Detach old source to prevent issues
-            audioRef.current.removeAttribute('src'); // Further ensure it's cleared
-            audioRef.current.load(); // Reset internal state of audio element
+            audioRef.current.src = '';
+            audioRef.current.removeAttribute('src');
+            audioRef.current.load();
             console.log('[AUDIO SYNC] Audio element reset.');
         }
 
         console.log('[AUDIO SYNC] Calling AudioAnalysisManager.setAudioFile');
         await AudioAnalysisManager.setAudioFile(file, audioRef.current);
         console.log('[AUDIO SYNC] AudioAnalysisManager.setAudioFile completed. Expecting state update via subscription.');
-        // AudioAnalysisManager's subscription is now responsible for setting isPlaying to true
-        // which will trigger the playback useEffect.
     };
 
-    // Handle playback controls
     const handlePlayPause = () => {
         AudioAnalysisManager.togglePlayPause(audioRef.current);
     };
 
-    // Handle skip forward
     const handleSkipForward = () => {
         AudioAnalysisManager.skipForward(audioRef.current);
     };
 
-    // Handle skip backward
     const handleSkipBackward = () => {
         AudioAnalysisManager.skipBackward(audioRef.current);
     };
 
-    // Handle reset to beginning
     const handleReset = () => {
         AudioAnalysisManager.resetAudio(audioRef.current);
     };
 
-    // Handle toggle looping
     const handleToggleLooping = () => {
         AudioAnalysisManager.toggleLooping(audioRef.current);
     };
 
-    // Handle shader selection from dropdown
     const handleShaderChange = (e) => {
         const shaderId = e.target.value;
         console.log(`[ShaderChange] Selected library shader: ${shaderId}`);
-        setCustomShader(null); // Clear any active custom shader code from editor's perspective
-        // currentShaderSrc will be set to null temporarily if the visualizer is unmounted due to key change,
-        // then loadShaderSource (triggered by useEffect) will provide the new src.
-        // Or, if we want to avoid a flash of no visualizer, we could set isLoadingShader here.
-        // For now, rely on the key change and conditional rendering.
-        setSelectedShader(shaderId); // This will trigger the useEffect above to load the shader
+        setCustomShader(null);
+        setSelectedShader(shaderId);
     };
 
-    // Load shader source based on ID (for library shaders)
     const loadShaderSource = async (shaderId) => {
         try {
             setIsLoadingShader(true);
@@ -243,23 +218,19 @@ const AudioShaderSync = () => {
                 return;
             }
 
-            // Handle dynamically loaded shaders
             if (shader.getFragSrc) {
                 const shaderSrc = await shader.getFragSrc();
                 console.log(`Loaded dynamic shader source of length: ${shaderSrc.length}`);
                 setCurrentShaderSrc(shaderSrc);
-                setTempCustomShader(shaderSrc); // Set the editor to show this shader's code
+                setTempCustomShader(shaderSrc);
             } else {
                 console.log(`Loaded static shader source: ${shader.name}, length: ${shader.fragSrc.length}`);
-                // Check if the source is the same as the current one
                 if (currentShaderSrc === shader.fragSrc) {
                     console.warn('Attempted to load identical shader source!');
                 }
                 setCurrentShaderSrc(shader.fragSrc);
 
-                // Store the original shader source for the editor
                 if (shader.fragSrc) {
-                    // If it's a wrapped shader, try to extract the original shader code
                     const isWrappedShader = shader.fragSrc.includes("// --- User's ShaderToy Code Start ---");
                     if (isWrappedShader) {
                         const startMarker = "// --- User's ShaderToy Code Start ---";
@@ -285,17 +256,10 @@ const AudioShaderSync = () => {
         }
     };
 
-    // Helper function to wrap ShaderToy GLSL code
     const wrapShaderToyCode = (shaderToyCode) => {
-        // Check if the code already contains "void main()" to avoid double wrapping
-        // or if it's not a ShaderToy style (doesn't contain mainImage)
         if (shaderToyCode.includes("void main()") || !shaderToyCode.includes("void mainImage(")) {
-            // If it's potentially standard GLSL or already wrapped, use as is for now.
-            // More sophisticated detection might be needed for mixed cases.
             console.log("Custom shader does not appear to be ShaderToy style or is already wrapped, using as is with highp if GLSL.");
             if (shaderToyCode.trim().startsWith("#version 300 es")) {
-                // If version is present, try to insert highp precision after it.
-                // This is a bit simplistic; a robust parser would be better.
                 let lines = shaderToyCode.split('\n');
                 if (!lines.some(line => line.includes("precision highp float;"))) {
                     lines.splice(1, 0, "precision highp float;");
@@ -303,62 +267,54 @@ const AudioShaderSync = () => {
                 return lines.join('\n');
             } else if (shaderToyCode.includes("#version")) {
                 console.warn("Custom shader specifies a GLSL version other than 300 es. Attempting to use as is.");
-                return shaderToyCode; // Or add highp similarly if desired
+                return shaderToyCode;
             } else if (shaderToyCode.includes("mainImage") || shaderToyCode.includes("main")) { // Likely GLSL
                 return "#version 300 es\nprecision highp float;\n" + shaderToyCode;
             }
-            return shaderToyCode; // Not clearly GLSL, return as is
+            return shaderToyCode;
         }
 
-        // For ShaderToy code, prepend the version and necessary setup.
         return `#version 300 es
-precision highp float; // Changed to highp
+precision highp float;
 
-// Uniforms provided by ShaderVisualizer and AudioShaderSync
-uniform vec2 uResolution; // Canvas resolution (width, height)
-uniform float uTime;     // Elapsed time in seconds
+uniform vec2 uResolution;
+uniform float uTime;
 
-// Audio-reactive uniforms (ensure these match what's in processAudioDataForShader)
 uniform float energy;
 uniform float lowEnergy;
-uniform float midEnergy; // Assuming this might be added later or is part of general 'energy'
+uniform float midEnergy;
 uniform float highEnergy;
 uniform float transients;
 
 out vec4 fragColor;
 
-// ShaderToy compatibility defines
-#define iResolution vec3(uResolution, 1.0) // Now iResolution is a vec3
+#define iResolution vec3(uResolution, 1.0)
 #define iTime uTime
-#define iChannelTime vec4(uTime, uTime, uTime, uTime) // Placeholder for iChannelTime
+#define iChannelTime vec4(uTime, uTime, uTime, uTime)
 #define iFragCoord gl_FragCoord
-#define iMouse vec4(0.0) // Placeholder for iMouse, can be implemented later if needed
+#define iMouse vec4(0.0)
 
-// GLSL-compatible tanh approximation
 vec4 tanhApprox(vec4 x) {
     vec4 x2 = x * x;
     return clamp(x * (27.0 + x2) / (27.0 + 9.0 * x2), -1.0, 1.0);
 }
-float tanhApprox(float x) { // Overload for float
+float tanhApprox(float x) {
     float x2 = x * x;
     return clamp(x * (27.0 + x2) / (27.0 + 9.0 * x2), -1.0, 1.0);
 }
 
-// Vector max function helper for GLSL ES 3.0 compatibility
 vec3 max_vec3(vec3 a, vec3 b) {
     return max(a, b);
 }
 
-// Automatic variable initialization workaround for GLSL ES 3.0
 #define AUTO_INIT_FLOAT(name) float name = 0.0
 #define AUTO_INIT_VEC3(name) vec3 name = vec3(0.0)
 #define AUTO_INIT_VEC4(name) vec4 name = vec4(0.0)
 
 float simplex_noise(vec3 p) {
-    return 0.0; // Placeholder - not used in your current shaders
+    return 0.0;
 }
 
-// ShaderToy tanh replacement
 #define tanh(x) tanhApprox(x)
 
 // --- User's ShaderToy Code Start ---
@@ -366,38 +322,27 @@ ${shaderToyCode}
 // --- User's ShaderToy Code End ---
 
 void main() {
-    // Initialize a color vector
     vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-    
-    // Call the ShaderToy mainImage function with appropriate coordinates
-    // Note: We're using gl_FragCoord.xy directly as ShaderToy expects
     mainImage(color, gl_FragCoord.xy);
-    
-    // Output the result
-    fragColor = vec4(color.rgb, 1.0); // Force alpha to 1.0
+    fragColor = vec4(color.rgb, 1.0);
 }
         `;
     };
 
-    // Handle custom shader input
     const handleCustomShaderChange = (e) => {
         setTempCustomShader(e.target.value);
     };
 
-    // Apply custom shader
     const applyCustomShader = (shaderCode) => {
         if (!shaderCode || shaderCode.trim() === '') {
             console.log("[CustomShader] Cleared custom shader. Reverting to last selected library shader or default.");
             setCustomShader(null);
-            setTempCustomShader(''); // Clear editor
+            setTempCustomShader('');
 
-            // Find the first non-custom shader in the available shaders list as a fallback or use a default.
-            // For a more robust revert, you might want to store the last selected *library* shader.
             const firstLibraryShader = availableShaders.find(s => !s.id.startsWith('custom-'));
-            const revertShaderId = firstLibraryShader ? firstLibraryShader.id : 'neonBar'; // Default fallback
+            const revertShaderId = firstLibraryShader ? firstLibraryShader.id : 'neonBar';
 
-            setSelectedShader(revertShaderId); // This will trigger the useEffect to load the library shader
-            // currentShaderSrc will be updated by the loadShaderSource call from the useEffect
+            setSelectedShader(revertShaderId);
             return;
         }
 
@@ -405,31 +350,24 @@ void main() {
         const wrappedShader = wrapShaderToyCode(shaderCode);
 
         console.log(`[CustomShader] Applying custom shader. Key: ${customKey}`);
-        setCustomShader(shaderCode); // Store raw code for editor state
-        setCurrentShaderSrc(wrappedShader); // Directly set the source for the visualizer
-        setSelectedShader(customKey); // Update selectedShader to this unique key. This is crucial for the <ShaderVisualizer key={selectedShader} />
-        // This also ensures the ShaderLoadEffect for library shaders doesn't try to load it.
-        setIsLoadingShader(false); // We've manually set the source.
+        setCustomShader(shaderCode);
+        setCurrentShaderSrc(wrappedShader);
+        setSelectedShader(customKey);
+        setIsLoadingShader(false);
     };
 
-    // Handle updates from the ShaderVisualizer - use useCallback to maintain stable reference
     const handleUniformsUpdate = useCallback((uniforms) => {
         setShaderUniforms(uniforms);
     }, []);
 
-    // Add handler for shader parameter updates
     const handleShaderParamUpdate = (newParams) => {
-        // Update local state
         setShaderParams(prev => ({
             ...prev,
             ...newParams
         }));
-
-        // Update actual shader parameters via ShaderManager
         ShaderManager.updateShaderParams(newParams);
     };
 
-    // Handlers for resizable panes
     const handleMouseDown = useCallback((e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -447,7 +385,6 @@ void main() {
         const containerRect = containerRef.current.getBoundingClientRect();
         let newLeftWidthPercentage = ((e.clientX - containerRect.left) / containerRect.width) * 100;
 
-        // Clamp values to min/max percentages (20% minimum for each pane)
         newLeftWidthPercentage = Math.max(20, newLeftWidthPercentage);
         newLeftWidthPercentage = Math.min(80, newLeftWidthPercentage);
 
@@ -457,7 +394,6 @@ void main() {
         });
     }, [isDragging]);
 
-    // Add/remove event listeners for drag operation
     useEffect(() => {
         if (isDragging) {
             document.addEventListener('mousemove', handleMouseMove);
@@ -480,46 +416,49 @@ void main() {
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${styles.scrollbarStyles}`}>
             <Head>
                 <title>Make Music Video Online | makemusic.video</title>
                 <meta name="description" content="Visualize audio with reactive WebGL shaders" />
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+                <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Fira+Code:wght@400;500&family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet" />
             </Head>
 
-            {/* Header */}
-            <header className={styles.pageHeader} style={{ position: 'relative', zIndex: 10 }}>
+            <header className={styles.pageHeader}>
                 <h1 className={styles.headerTitle}>makemusic.video</h1>
+                {/* Optional: Add tagline or nav links here if desired for the global header */}
             </header>
 
             <main className={styles.main}>
-                {/* Flex container with resizable panels */}
                 <div
                     ref={containerRef}
                     style={{
                         display: 'flex',
                         width: '100%',
-                        height: '85vh', // Constrain height to viewport
-                        maxHeight: 'calc(100vh - 140px)', // Subtract header + footer + some margin
-                        border: '2px solid #333',
-                        borderRadius: '8px',
+                        height: 'calc(100vh - 120px)',
+                        maxHeight: 'calc(100vh - 120px)',
+                        border: '1px solid var(--anime-light-blue)',
+                        borderRadius: '6px',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        backgroundColor: 'var(--anime-darker)'
                     }}
                 >
                     {/* LEFT SIDE: Controls */}
                     <div style={{
                         width: `${paneSizes.left}%`,
-                        padding: '12px',
-                        backgroundColor: '#0a001e',
+                        padding: '1rem',
+                        backgroundColor: 'rgba(46, 40, 60, 0.9)',
                         overflow: 'auto',
                         position: 'relative',
                         zIndex: 5,
                         display: 'flex',
-                        flexDirection: 'column'
+                        flexDirection: 'column',
+                        borderRight: '1px solid var(--anime-accent-secondary)'
                     }}>
-                        {/* More compact file upload and controls section */}
-                        <div className={styles.fileUploadSection} style={{ marginBottom: '0.75rem', paddingBottom: '0.75rem' }}>
-                            <div className={styles.fileInputContainer} style={{ gap: '0.5rem' }}>
+                        <div className={styles.fileUploadSection} style={{ marginBottom: '1rem', paddingBottom: '1rem' }}>
+                            <div className={styles.fileInputContainer} style={{ gap: '0.75rem' }}>
                                 <div className={styles.fileInput} style={{ flex: '0.7' }}>
                                     <input
                                         type="file"
@@ -527,8 +466,9 @@ void main() {
                                         onChange={handleFileChange}
                                         id="audio-file"
                                         ref={fileInputRef}
+                                        style={{ display: 'none' }} // Keep input hidden
                                     />
-                                    <label htmlFor="audio-file" className={styles.fileInputLabel} style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', padding: '0.5rem 0.75rem' }}>
+                                    <label htmlFor="audio-file" className={styles.fileInputLabel} style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem 0.75rem' }}>
                                         {audioState.audioFile ? 'Change Audio' : 'Select Audio'}
                                     </label>
                                 </div>
@@ -537,23 +477,23 @@ void main() {
                                     onClick={handlePlayPause}
                                     disabled={!audioState.audioFile || audioState.isAnalyzing}
                                     className={`${styles.playButton} ${audioState.isPlaying ? styles.pause : styles.play}`}
-                                    style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', flex: '0.3' }}
+                                    style={{ padding: '0.6rem 0.75rem', fontSize: '0.8rem', flex: '0.3' }} // Adjusted padding
                                 >
                                     {audioState.isAnalyzing ? 'Analyzing...' : audioState.isPlaying ? 'Pause' : 'Play'}
                                 </button>
                             </div>
 
                             {audioState.audioFile && (
-                                <div className={styles.fileInfoDisplay} style={{ fontSize: '0.75rem', marginTop: '0.3rem' }}>
+                                <div className={styles.fileInfoDisplay} style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>
                                     {audioState.audioFile.name} {audioState.isAnalyzing && '(Analyzing...)'}
                                 </div>
                             )}
                         </div>
 
-                        <div className={styles.controlsRow} style={{ marginBottom: '0.75rem' }}>
-                            <div className={styles.controlGroup} style={{ minWidth: '140px' }}>
-                                <label htmlFor="shader-select" className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}>
-                                    Select Template Visual:
+                        <div className={styles.controlsRow} style={{ marginBottom: '1rem' }}>
+                            <div className={styles.controlGroup} style={{ minWidth: '150px' }}>
+                                <label htmlFor="shader-select" className={styles.controlLabel} style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                                    Select Visual Template:
                                 </label>
                                 <select
                                     id="shader-select"
@@ -561,7 +501,7 @@ void main() {
                                     onChange={handleShaderChange}
                                     className={styles.controlSelect}
                                     disabled={isLoadingShader}
-                                    style={{ fontSize: '0.8rem', padding: '0.4rem' }}
+                                    style={{ fontSize: '0.75rem', padding: '0.45rem' }} // Adjusted padding
                                 >
                                     {availableShaders.map(shader => (
                                         <option key={shader.id} value={shader.id}>
@@ -570,51 +510,51 @@ void main() {
                                     ))}
                                 </select>
                                 {isLoadingShader && (
-                                    <div className={styles.loadingMessage} style={{ fontSize: '0.75rem' }}>
+                                    <div className={styles.loadingMessage} style={{ fontSize: '0.7rem' }}>
                                         Loading shader...
                                     </div>
                                 )}
                             </div>
 
-                            <div className={styles.controlGroup} style={{ minWidth: '140px' }}>
-                                <span className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}>Current Time:</span>
+                            <div className={styles.controlGroup} style={{ minWidth: '150px' }}>
+                                <span className={styles.controlLabel} style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Playback:</span>
                                 <div className={styles.timeControls}>
                                     <button
                                         onClick={handleSkipBackward}
                                         className={styles.skipButton}
-                                        title="Skip backward 5 seconds"
+                                        title="Skip backward 5s"
                                         disabled={!audioState.audioFile}
-                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
+                                        style={{ padding: '0.3rem 0.45rem', fontSize: '0.75rem' }}
                                     >
                                         ⏪
                                     </button>
-                                    <div className={styles.timeDisplay} style={{ padding: '0.3rem 0.5rem', fontSize: '0.7rem' }}>
+                                    <div className={styles.timeDisplay} style={{ padding: '0.35rem 0.5rem', fontSize: '0.65rem' }}>
                                         {audioState.currentTime.toFixed(2)}s
                                     </div>
                                     <button
                                         onClick={handleReset}
                                         className={styles.skipButton}
-                                        title="Reset to beginning"
+                                        title="Reset to 0s"
                                         disabled={!audioState.audioFile}
-                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
+                                        style={{ padding: '0.3rem 0.45rem', fontSize: '0.75rem' }}
                                     >
                                         ⟲
                                     </button>
                                     <button
                                         onClick={handleToggleLooping}
                                         className={`${styles.skipButton} ${audioState.isLooping ? styles.activeButton : ''}`}
-                                        title="Toggle loop mode"
+                                        title="Toggle Loop"
                                         disabled={!audioState.audioFile}
-                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
+                                        style={{ padding: '0.3rem 0.45rem', fontSize: '0.75rem' }}
                                     >
-                                        ↻
+                                        {audioState.isLooping ? '🔁' : '↻'} {/* Changed icon for active loop */}
                                     </button>
                                     <button
                                         onClick={handleSkipForward}
                                         className={styles.skipButton}
-                                        title="Skip forward 5 seconds"
+                                        title="Skip forward 5s"
                                         disabled={!audioState.audioFile}
-                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
+                                        style={{ padding: '0.3rem 0.45rem', fontSize: '0.75rem' }}
                                     >
                                         ⏩
                                     </button>
@@ -622,57 +562,35 @@ void main() {
                             </div>
                         </div>
 
-                        {/* Tab Controls - more compact */}
                         <div style={{
                             display: 'flex',
-                            borderBottom: '2px solid #00FFFF',
+                            borderBottom: '1px solid #00FFFF', // Neon Cyan separator
                             marginBottom: '10px'
                         }}>
                             <button
                                 onClick={() => setActiveControlsView('controls')}
-                                style={{
-                                    flex: 1,
-                                    padding: '6px',
-                                    background: activeControlsView === 'controls' ? 'rgba(0, 255, 255, 0.2)' : 'transparent',
-                                    color: activeControlsView === 'controls' ? '#00FFFF' : '#00AAAA',
-                                    border: 'none',
-                                    borderBottom: activeControlsView === 'controls' ? '3px solid #FF00FF' : '3px solid transparent',
-                                    cursor: 'pointer',
-                                    fontWeight: activeControlsView === 'controls' ? 'bold' : 'normal',
-                                    fontSize: '0.8rem'
-                                }}
+                                className={`${styles.tabButton} ${activeControlsView === 'controls' ? styles.activeTabButton : ''}`}
+                                style={{ flex: 1 /* Style is now mostly from CSS module */ }}
                             >
                                 VISUAL CONTROLS
                             </button>
                             <button
                                 onClick={() => setActiveControlsView('editor')}
-                                style={{
-                                    flex: 1,
-                                    padding: '6px',
-                                    background: activeControlsView === 'editor' ? 'rgba(0, 255, 255, 0.2)' : 'transparent',
-                                    color: activeControlsView === 'editor' ? '#00FFFF' : '#00AAAA',
-                                    border: 'none',
-                                    borderBottom: activeControlsView === 'editor' ? '3px solid #FF00FF' : '3px solid transparent',
-                                    cursor: 'pointer',
-                                    fontWeight: activeControlsView === 'editor' ? 'bold' : 'normal',
-                                    fontSize: '0.8rem'
-                                }}
+                                className={`${styles.tabButton} ${activeControlsView === 'editor' ? styles.activeTabButton : ''}`}
+                                style={{ flex: 1 /* Style is now mostly from CSS module */ }}
                             >
                                 VISUAL EDITOR
                             </button>
                         </div>
 
-                        {/* Content container with tabs */}
                         <div style={{
                             flexGrow: 1,
-                            padding: '8px',
-                            display: 'block',
+                            padding: '0.5rem', // Slightly reduced padding for content area
+                            display: 'block', // Changed from flex to block to allow natural flow
                             position: 'relative',
-                            zIndex: 10,
                             overflow: 'auto',
-                            backgroundColor: '#0a001e' // Ensure background is visible
+                            backgroundColor: '#0A0A10' // Match pane background
                         }}>
-                            {/* Conditional content based on tabs */}
                             {activeControlsView === 'controls' && (
                                 <AudioShaderControls
                                     initialParams={shaderParams}
@@ -681,10 +599,12 @@ void main() {
                             )}
 
                             {activeControlsView === 'editor' && (
-                                <ShaderEditor
-                                    shaderCode={customShader || tempCustomShader}
-                                    onApplyShader={applyCustomShader}
-                                />
+                                <div className={styles.editorScrollbars}>
+                                    <ShaderEditor
+                                        shaderCode={customShader || tempCustomShader}
+                                        onApplyShader={applyCustomShader}
+                                    />
+                                </div>
                             )}
                         </div>
                     </div>
@@ -692,15 +612,15 @@ void main() {
                     {/* Resizer Handle */}
                     <div
                         style={{
-                            width: '10px',
+                            width: '8px',
                             cursor: 'col-resize',
-                            background: 'linear-gradient(to right, #1A0530, #4A00E0)',
+                            background: isDragging ? 'var(--anime-pink)' : 'var(--anime-purple)',
                             zIndex: 10,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            borderLeft: '1px solid #4A00E0',
-                            borderRight: '1px solid #4A00E0',
+                            borderLeft: '1px solid rgba(108, 92, 231, 0.3)',
+                            borderRight: '1px solid rgba(108, 92, 231, 0.3)',
                             transition: 'background 0.2s ease'
                         }}
                         onMouseDown={handleMouseDown}
@@ -708,8 +628,8 @@ void main() {
                     >
                         <div style={{
                             width: '2px',
-                            height: '30px',
-                            backgroundColor: '#FF00FF',
+                            height: '25px',
+                            backgroundColor: isDragging ? '#FFFFFF' : 'var(--anime-light-blue)',
                             borderRadius: '1px'
                         }}></div>
                     </div>
@@ -717,10 +637,11 @@ void main() {
                     {/* RIGHT SIDE: Visualization */}
                     <div style={{
                         width: `${paneSizes.right}%`,
-                        backgroundColor: '#050108',
+                        backgroundColor: 'var(--anime-darker)',
                         display: 'flex',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        borderLeft: '1px solid var(--anime-accent-secondary)'
                     }}>
                         <div style={{
                             width: '100%',
@@ -728,17 +649,17 @@ void main() {
                             position: 'relative',
                             overflow: 'hidden'
                         }}>
-                            {isLoadingShader && <div className={styles.loadingOverlay}>Loading Shader...</div>}
+                            {isLoadingShader && <div className={styles.loadingOverlay}>Loading Visual...</div>}
                             {!isLoadingShader && currentShaderSrc && (
                                 <ShaderVisualizer
-                                    key={selectedShader}
+                                    key={selectedShader} // Unique key for re-mount on change
                                     shaderSrc={currentShaderSrc}
                                     onUpdateUniforms={handleUniformsUpdate}
-                                    resolutionScale={0.75}
+                                    resolutionScale={0.8} // Slightly increased resolution scale
                                 />
                             )}
                             {!isLoadingShader && !currentShaderSrc && (
-                                <div className={styles.placeholderVis}>Select a shader or apply custom code.</div>
+                                <div className={styles.placeholderVis}>Upload audio & select a visual template or edit code.</div>
                             )}
                         </div>
                     </div>
@@ -746,10 +667,9 @@ void main() {
             </main>
 
             <footer className={styles.footer}>
-                <p>&copy; {new Date().getFullYear()} makemusic.video - All Rights Reserved</p>
+                <p>&copy; {new Date().getFullYear()} makemusic.video - Cyberfunk Division</p>
             </footer>
 
-            {/* Hidden audio element */}
             <audio ref={audioRef} style={{ display: 'none' }} controls />
         </div>
     );
