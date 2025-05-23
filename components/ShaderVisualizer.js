@@ -411,24 +411,6 @@ const ShaderVisualizer = ({
                 fps = currentFrameCount - (frameCountRef.current - fps);
                 lastFpsUpdate = now;
                 console.log(`[SHADER PERF] FPS: ${fps}, Resolution: ${resolution[0]}x${resolution[1]}`);
-
-                // Get combined audio state
-                const combinedAudioState = {
-                    // First use passed props if available, otherwise use the manager state
-                    isPlaying: audioState?.isPlaying ?? audioManagerState?.isPlaying ?? false,
-                    currentTime: audioState?.currentTime ?? audioManagerState?.currentTime ?? 0,
-                    analysis: audioAnalysis ?? audioManagerState?.audioAnalysis ?? null
-                };
-
-                // Add diagnostic logging for audio state
-                if (combinedAudioState.analysis) {
-                    console.log(`[AUDIO DEBUG] Audio analysis available, timeline entries: ${combinedAudioState.analysis.timeline ? combinedAudioState.analysis.timeline.length : 'undefined'
-                        }`);
-                } else {
-                    console.log(`[AUDIO DEBUG] No audio analysis data available`);
-                }
-
-                console.log(`[AUDIO DEBUG] Audio state: isPlaying=${combinedAudioState.isPlaying}, currentTime=${combinedAudioState.currentTime}`);
             }
 
             // Start frame timing
@@ -440,6 +422,17 @@ const ShaderVisualizer = ({
                 currentTime: audioState?.currentTime ?? audioManagerState?.currentTime ?? 0,
                 isPlaying: audioState?.isPlaying ?? audioManagerState?.isPlaying ?? false
             };
+
+            // Add detailed logging for audio debug (only every 60 frames to avoid spam)
+            if (currentFrameCount % 60 === 0) {
+                console.log(`[SHADER VIZ DEBUG] Frame ${currentFrameCount}:`);
+                console.log(`  - Audio props provided: analysis=${!!audioAnalysis}, state=${!!audioState}`);
+                console.log(`  - Manager state: analysis=${!!audioManagerState?.audioAnalysis}, isPlaying=${audioManagerState?.isPlaying}`);
+                console.log(`  - Final audio state: analysis=${!!audioStateForShader.analysis}, isPlaying=${audioStateForShader.isPlaying}, time=${audioStateForShader.currentTime?.toFixed(2)}`);
+                if (audioStateForShader.analysis) {
+                    console.log(`  - Timeline entries: ${audioStateForShader.analysis.timeline?.length || 0}`);
+                }
+            }
 
             // Use the unified update function
             const newState = updateFrame({

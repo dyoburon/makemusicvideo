@@ -165,7 +165,7 @@ let lastPlayingState = false;
 // Store the time of the last transient that triggered a color change
 let lastTransientColorChangeTime = 0;
 // Threshold for detecting a significant transient event
-const TRANSIENT_THRESHOLD = 0.0;
+const TRANSIENT_THRESHOLD = 0.05; // Balanced threshold - detects real transients but ignores noise
 // Minimum interval between color changes triggered by transients (in milliseconds)
 const MIN_COLOR_CHANGE_INTERVAL = 500;
 
@@ -260,7 +260,11 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
 
     // Step 2: If audio is playing, process it and potentially trigger audio-reactive events.
     if (isPlaying && audioAnalysis) {
-        const processedAudio = { ...audioAnalysis, currentTime };
+        // FIXED: Pass the timeline directly on the audioData object, not nested under analysis
+        const processedAudio = {
+            timeline: audioAnalysis.timeline,
+            currentTime: currentTime
+        };
         const liveRawUniforms = processAudioDataForShader(processedAudio);
 
         audioDrivenEnergy = liveRawUniforms.energy;
@@ -268,9 +272,13 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
         audioDrivenHighEnergy = liveRawUniforms.highEnergy;
         audioDrivenTransients = liveRawUniforms.transients;
 
+        // Add debug logging for audio processing (only when debug is requested)
+        if (debugOptions.shouldLog) {
+            console.log(`[SHADER UPDATE] Audio processing - E:${audioDrivenEnergy.toFixed(2)}, L:${audioDrivenLowEnergy.toFixed(2)}, H:${audioDrivenHighEnergy.toFixed(2)}, T:${audioDrivenTransients.toFixed(2)}`);
+        }
+
         // --- Transient-based Color Change Logic (only active if playing) ---
-        const effectiveTransientStrengthForColor = liveRawUniforms.transients * smoothedValues.transientEffect.current;
-        const newTransientDetected = effectiveTransientStrengthForColor > TRANSIENT_THRESHOLD;
+        const newTransientDetected = liveRawUniforms.transients > TRANSIENT_THRESHOLD;
         const sufficientTimePassed = (now - lastTransientColorChangeTime) > MIN_COLOR_CHANGE_INTERVAL;
 
         if (newTransientDetected && sufficientTimePassed) {
@@ -554,15 +562,15 @@ export function updateFrame({
         }
         // ... (rest of draw logic)
         // Bind vertex buffer and draw
-        if (buffers && buffers.position) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-            const positionAttributeLocation = shaderProgram.getAttributeLocation('aPosition');
+        if (buffers && buffers.positionBuffer) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.positionBuffer);
+            const positionAttributeLocation = shaderProgram.addAttribute('aPosition');
             if (positionAttributeLocation !== -1) { // Check if attribute exists
                 gl.enableVertexAttribArray(positionAttributeLocation);
                 gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
-                gl.drawArrays(gl.TRIANGLES, 0, 6); // Assuming a quad (2 triangles, 6 vertices)
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); // Draw quad as triangle strip with 4 vertices
             } else {
-                // console.warn("[Shader Render] aPosition attribute not found in shader.");
+                console.warn("[Shader Render] aPosition attribute not found in shader.");
             }
         } else {
             console.warn("[Shader Render] Position buffer is missing.");

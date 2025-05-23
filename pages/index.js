@@ -46,47 +46,33 @@ const AudioShaderSync = () => {
     useEffect(() => {
         console.log('[AUDIO SYNC] Setting up AudioAnalysisManager subscription');
         const unsubscribe = AudioAnalysisManager.subscribe(newState => {
-            setAudioState(prevState => ({ ...prevState, ...newState }));
+            setAudioState(newState);
             console.log('[AUDIO SYNC] Received audio state update:',
                 `isPlaying: ${newState.isPlaying}, `,
-                `currentTime: ${newState.currentTime !== undefined ? newState.currentTime.toFixed(2) : 'N/A'}`);
+                `currentTime: ${newState.currentTime.toFixed(2)}`);
         });
 
         return unsubscribe;
     }, []);
 
+    // Set up time update listener when audio element is ready
+    useEffect(() => {
+        if (audioRef.current) {
+            console.log('[AUDIO SYNC] Setting up time update listener');
+            const timeUpdateCleanup = AudioAnalysisManager.setupTimeUpdateListener(audioRef.current);
+            const endedEventCleanup = AudioAnalysisManager.setupEndedEventListener(audioRef.current);
+
+            return () => {
+                timeUpdateCleanup();
+                endedEventCleanup();
+            };
+        }
+    }, [audioRef.current]);
+
     // Load available shaders on mount
     useEffect(() => {
         setAvailableShaders(ShaderManager.getAvailableShaders());
     }, []);
-
-    // New useEffect to directly update currentTime from the audio element
-    useEffect(() => {
-        const audioElement = audioRef.current;
-
-        const handleTimeUpdate = () => {
-            if (audioElement) {
-                setAudioState(prev => {
-                    if (prev.currentTime !== audioElement.currentTime) {
-                        return { ...prev, currentTime: audioElement.currentTime };
-                    }
-                    return prev;
-                });
-            }
-        };
-
-        if (audioElement) {
-            audioElement.addEventListener('timeupdate', handleTimeUpdate);
-            audioElement.addEventListener('playing', handleTimeUpdate);
-        }
-
-        return () => {
-            if (audioElement) {
-                audioElement.removeEventListener('timeupdate', handleTimeUpdate);
-                audioElement.removeEventListener('playing', handleTimeUpdate);
-            }
-        };
-    }, [audioRef.current]);
 
     useEffect(() => {
         if (selectedShader && selectedShader.startsWith('custom-')) {
@@ -100,83 +86,19 @@ const AudioShaderSync = () => {
         }
     }, [availableShaders, selectedShader, isLoadingShader]);
 
+    // Load the default shader on mount  
     useEffect(() => {
-        console.log(`[AUDIO SYNC Playback Effect] audioFile: ${!!audioState.audioFile}, isPlaying: ${audioState.isPlaying}, isAnalyzing: ${audioState.isAnalyzing}, currentShaderSrc: ${!!currentShaderSrc}, audioSrc: ${audioRef.current ? audioRef.current.src : 'no ref'}`);
-
-        if (audioRef.current && audioState.audioFile && currentShaderSrc) {
-            audioRef.current.loop = audioState.isLooping;
-
-            if (audioState.isPlaying && !audioState.isAnalyzing) {
-                if (!audioRef.current.src || audioRef.current.src === window.location.href) {
-                    console.warn('[AUDIO SYNC Playback Effect] Audio src is missing or invalid. Re-attaching from audioState.audioFile.url if available.');
-                    if (audioState.audioFile.url) {
-                        audioRef.current.src = audioState.audioFile.url;
-                    } else {
-                        console.error('[AUDIO SYNC Playback Effect] Cannot play, audio src is invalid and no backup URL in audioState.audioFile.');
-                        setAudioState(prev => ({ ...prev, isPlaying: false }));
-                        return;
-                    }
-                }
-
-                if (audioRef.current.paused) {
-                    console.log('[AUDIO SYNC Playback Effect] Attempting to play audio. Current time:', audioState.currentTime);
-                    if (audioRef.current.currentTime !== audioState.currentTime) {
-                        audioRef.current.currentTime = audioState.currentTime;
-                    }
-                    audioRef.current.play().then(() => {
-                        console.log("[AUDIO SYNC Playback Effect] Playback started successfully.");
-                    }).catch(error => {
-                        console.warn("[AUDIO SYNC Playback Effect] Audio play attempt failed.", error);
-                        setAudioState(prev => ({ ...prev, isPlaying: false }));
-                    });
-                }
-            } else {
-                if (!audioRef.current.paused) {
-                    console.log('[AUDIO SYNC Playback Effect] Pausing audio.');
-                    audioRef.current.pause();
-                }
-            }
-        } else {
-            if (audioRef.current && !audioRef.current.paused) {
-                console.log('[AUDIO SYNC Playback Effect] Conditions not met (no audioFile, or no currentShaderSrc, or analyzing), ensuring audio is paused.');
-                audioRef.current.pause();
-            }
+        if (availableShaders.length > 0) {
+            loadShaderSource(selectedShader);
         }
-    }, [
-        audioState.audioFile,
-        audioState.isPlaying,
-        audioState.isLooping,
-        audioState.currentTime,
-        audioState.isAnalyzing,
-        currentShaderSrc
-    ]);
+    }, [availableShaders]);
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        console.log('[AUDIO SYNC] File selected. Resetting state and preparing for new audio.');
-        setAudioState(prev => ({
-            ...prev,
-            audioFile: null,
-            isPlaying: false,
-            isAnalyzing: true,
-            currentTime: 0
-        }));
-
-        if (audioRef.current) {
-            if (!audioRef.current.paused) {
-                audioRef.current.pause();
-            }
-            audioRef.current.src = '';
-            audioRef.current.removeAttribute('src');
-            audioRef.current.load();
-            console.log('[AUDIO SYNC] Audio element reset.');
-        }
-
-        console.log('[AUDIO SYNC] Calling AudioAnalysisManager.setAudioFile');
+        // Use AudioAnalysisManager for file handling and analysis
         await AudioAnalysisManager.setAudioFile(file, audioRef.current);
-        console.log('[AUDIO SYNC] AudioAnalysisManager.setAudioFile completed. Expecting state update via subscription.');
     };
 
     const handlePlayPause = () => {
@@ -199,11 +121,17 @@ const AudioShaderSync = () => {
         AudioAnalysisManager.toggleLooping(audioRef.current);
     };
 
-    const handleShaderChange = (e) => {
+    const handleShaderChange = async (e) => {
         const shaderId = e.target.value;
-        console.log(`[ShaderChange] Selected library shader: ${shaderId}`);
+
+        // Clear custom shader state when selecting from presets
         setCustomShader(null);
+
+        // Update selected shader state
         setSelectedShader(shaderId);
+
+        // Load the shader source
+        await loadShaderSource(shaderId);
     };
 
     const loadShaderSource = async (shaderId) => {

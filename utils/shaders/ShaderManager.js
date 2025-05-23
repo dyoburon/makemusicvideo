@@ -215,29 +215,58 @@ export function processAudioDataForShader(audioData) {
         return processAudioDataForShader.lastResult;
     }
 
-    // If no audio data, or no analysis object within audioData, or no timeline in analysis
-    if (!audioData || !audioData.analysis || !audioData.analysis.timeline) {
-        const defaultValues = {
+    // Add less verbose debugging for the input data  
+    if (!processAudioDataForShader.frameCount) {
+        processAudioDataForShader.frameCount = 0;
+    }
+    processAudioDataForShader.frameCount++;
+
+    // Basic validation - FIXED: Changed from audioData.analysis.timeline to audioData.timeline
+    if (!audioData || !audioData.timeline) {
+        if (processAudioDataForShader.frameCount % 60 === 0) {
+            console.warn('[AUDIO PROC DEBUG] Invalid audio data structure', {
+                hasAudioData: !!audioData,
+                hasTimeline: audioData ? !!audioData.timeline : false
+            });
+        }
+        return {
             energy: 0.5,
             lowEnergy: 0.5,
             highEnergy: 0.5,
-            transients: 0,
-            time: now / 1000
+            transients: 0
         };
-        processAudioDataForShader.lastResult = defaultValues;
-        processAudioDataForShader.lastTimeStamp = now;
-
-        const processEnd = performance.now();
-        if (processEnd - processStart > 5) {
-            console.log(`[AUDIO PROC DEBUG] Default audio processing took ${(processEnd - processStart).toFixed(2)}ms`);
-        }
-
-        return defaultValues;
     }
 
     // Find the most recent events for different categories
-    const currentTime = audioData.currentTime || 0; // Correctly accessed from audioData root
-    const timeline = audioData.analysis.timeline; // Correctly accessed from audioData.analysis
+    const currentTime = audioData.currentTime || 0;
+    const timeline = audioData.timeline; // FIXED: Changed from audioData.analysis.timeline
+
+    // Only log processing details every 60 frames
+    if (processAudioDataForShader.frameCount % 60 === 0) {
+        console.log(`[AUDIO PROC DETAILED] Processing timeline with ${timeline.length} events at time ${currentTime.toFixed(2)}`);
+
+        // Sample a few events to see their structure
+        if (timeline.length > 0) {
+            console.log('[AUDIO PROC DETAILED] Sample timeline events:');
+            const sampleEvents = timeline.slice(0, 3);
+            sampleEvents.forEach((event, i) => {
+                console.log(`  Event ${i}:`, {
+                    type: event.type,
+                    time: event.time,
+                    intensity: event.intensity,
+                    dominantBand: event.dominantBand,
+                    value: event.value
+                });
+            });
+
+            // Also check event times around current time
+            const nearbyEvents = timeline.filter(event => Math.abs(event.time - currentTime) < 2.0);
+            console.log(`[AUDIO PROC DETAILED] Found ${nearbyEvents.length} events within 2s of current time`);
+            if (nearbyEvents.length > 0) {
+                console.log('[AUDIO PROC DETAILED] Nearby events:', nearbyEvents.slice(0, 3));
+            }
+        }
+    }
 
     // Process recent events to get current audio state
     let lowEnergy = 0.5;
@@ -248,8 +277,16 @@ export function processAudioDataForShader(audioData) {
     const recentTransients = timeline.filter(event =>
         event.type === 'transient' &&
         event.time <= currentTime &&
-        currentTime - event.time < 0.2 // Reverted to smaller window (e.g., 200ms) for performance
+        currentTime - event.time < 0.1 // Changed back to 100ms window to match afk-ai
     );
+
+    // Only log dynamics when found or every 60 frames
+    if (recentTransients.length > 0 || processAudioDataForShader.frameCount % 60 === 0) {
+        console.log(`[AUDIO PROC DETAILED] Found ${recentTransients.length} recent transients`);
+        if (recentTransients.length > 0) {
+            console.log('[AUDIO PROC DETAILED] Sample transient:', recentTransients[0]);
+        }
+    }
 
     let mostIntenseTransientTime = currentTime; // Default if no transients
 
@@ -263,6 +300,11 @@ export function processAudioDataForShader(audioData) {
         transientIntensity = mostIntense.intensity;
         mostIntenseTransientTime = mostIntense.time; // Store the time of the actual most intense transient
 
+        // Only log very intense transients or during debug frames
+        if (mostIntense.intensity > 0.5 || processAudioDataForShader.frameCount % 600 === 0) {
+            console.log(`[AUDIO PROC DETAILED] Most intense transient: intensity=${mostIntense.intensity}, time=${mostIntense.time}, band=${mostIntense.dominantBand}`);
+        }
+
         // Set band-specific energy based on the dominant band
         if (mostIntense.dominantBand === 'low') {
             lowEnergy = 0.5 + (mostIntense.intensity * 0.5); // Scale to 0.5-1.0
@@ -275,8 +317,22 @@ export function processAudioDataForShader(audioData) {
     const recentDynamics = timeline.filter(event =>
         event.type.startsWith('dynamic_') &&
         event.time <= currentTime &&
-        currentTime - event.time < 0.5 // Reverted to smaller window (e.g., 500ms)
+        currentTime - event.time < 0.3 // Changed to 300ms to match afk-ai
     );
+
+    // Only log dynamics when found or every 60 frames
+    if (recentDynamics.length > 0 || processAudioDataForShader.frameCount % 60 === 0) {
+        console.log(`[AUDIO PROC DETAILED] Found ${recentDynamics.length} recent dynamics`);
+        if (recentDynamics.length > 0) {
+            console.log('[AUDIO PROC DETAILED] Sample dynamic:', recentDynamics[0]);
+        }
+
+        // Also check what event types exist in the timeline
+        if (processAudioDataForShader.frameCount % 60 === 0) {
+            const eventTypes = [...new Set(timeline.map(e => e.type))];
+            console.log('[AUDIO PROC DETAILED] Available event types in timeline:', eventTypes);
+        }
+    }
 
     let energy = 0.5; // Default energy
 
@@ -289,6 +345,11 @@ export function processAudioDataForShader(audioData) {
 
         // Scale intensity to 0.5-1.0
         energy = 0.5 + (mostIntense.intensity * 0.5);
+
+        // Only log dynamics when found or every 60 frames
+        if (processAudioDataForShader.frameCount % 60 === 0) {
+            console.log(`[AUDIO PROC DETAILED] Most intense dynamic: intensity=${mostIntense.intensity}, energy=${energy}`);
+        }
     }
 
     // Decay values over time for smoother transitions
@@ -305,6 +366,11 @@ export function processAudioDataForShader(audioData) {
         time: currentTime
     };
 
+    // Only log final result every 60 frames
+    if (processAudioDataForShader.frameCount % 60 === 0) {
+        console.log(`[AUDIO PROC DETAILED] Final result: E=${result.energy.toFixed(2)}, L=${result.lowEnergy.toFixed(2)}, H=${result.highEnergy.toFixed(2)}, T=${result.transients.toFixed(2)}`);
+    }
+
     const processEnd = performance.now();
     const processTime = processEnd - processStart;
 
@@ -313,12 +379,7 @@ export function processAudioDataForShader(audioData) {
         console.log(`[AUDIO PROC DEBUG] Audio processing took ${processTime.toFixed(2)}ms`);
     }
 
-    // Log every 60th frame (roughly once per second at 60fps)
-    if (processAudioDataForShader.frameCount === undefined) {
-        processAudioDataForShader.frameCount = 0;
-    }
-    processAudioDataForShader.frameCount++;
-
+    // Main logging is now handled at the beginning of the function to avoid double counting
     if (processAudioDataForShader.frameCount % 60 === 0) {
         console.log(`[AUDIO PROC DEBUG] Energy values - E:${result.energy.toFixed(2)}, ` +
             `L:${result.lowEnergy.toFixed(2)}, H:${result.highEnergy.toFixed(2)}, ` +
@@ -339,8 +400,21 @@ export function processAudioDataForShader(audioData) {
  * @returns {Object} - The updated parameters
  */
 export function updateShaderParams(params) {
-    // Import needed here to avoid circular dependency
-    const { smoothedValues } = require('./ShaderUpdate');
+    // Lazy import to avoid circular dependency
+    let smoothedValues;
+    try {
+        const shaderUpdateModule = require('./ShaderUpdate');
+        smoothedValues = shaderUpdateModule.smoothedValues;
+    } catch (error) {
+        console.warn('[SHADER MANAGER] Could not access smoothedValues:', error.message);
+        return params; // Return early if we can't access smoothedValues
+    }
+
+    if (!smoothedValues) {
+        console.warn('[SHADER MANAGER] smoothedValues not available');
+        return params;
+    }
+
     const now = Date.now();
 
     // Update color parameters
