@@ -43,29 +43,29 @@ export const smoothedValues = {
     },
     // Add new color states
     color1: {
-        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
-        g: { current: 0.8, target: 0.8, lastUpdateTime: 0 },
+        r: { current: 0.4, target: 0.4, lastUpdateTime: 0 },
+        g: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
         b: { current: 0.2, target: 0.2, lastUpdateTime: 0 }
     },
     color2: {
-        r: { current: 0.0, target: 0.0, lastUpdateTime: 0 },
-        g: { current: 0.7, target: 0.7, lastUpdateTime: 0 },
-        b: { current: 0.3, target: 0.3, lastUpdateTime: 0 }
+        r: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
+        g: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
+        b: { current: 0.8, target: 0.8, lastUpdateTime: 0 }
     },
     color3: {
-        r: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
-        g: { current: 0.9, target: 0.9, lastUpdateTime: 0 },
-        b: { current: 0.1, target: 0.1, lastUpdateTime: 0 }
+        r: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
+        g: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
+        b: { current: 0.8, target: 0.8, lastUpdateTime: 0 }
     },
     fogColor: {
-        r: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
-        g: { current: 0.15, target: 0.15, lastUpdateTime: 0 },
-        b: { current: 0.05, target: 0.05, lastUpdateTime: 0 }
+        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
+        g: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
+        b: { current: 0.15, target: 0.15, lastUpdateTime: 0 }
     },
     glowColor: {
-        r: { current: 0.0, target: 0.0, lastUpdateTime: 0 },
-        g: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
-        b: { current: 0.1, target: 0.1, lastUpdateTime: 0 }
+        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
+        g: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
+        b: { current: 0.2, target: 0.2, lastUpdateTime: 0 }
     },
     // Tunnel breathing effect parameters
     breathingRate: {
@@ -347,22 +347,31 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
         instantaneousTargetSpeed = baseCamSpeed;
         const energyBoost = audioDrivenEnergy * energyBoostFactor;
 
+        // If audio just started playing, give an initial acceleration boost
         if (!lastPlayingState) { // Just started playing
-            instantaneousTargetSpeed = baseCamSpeed * 2.0; // Initial acceleration
+            instantaneousTargetSpeed = baseCamSpeed * 2.0; // Initial acceleration when playback starts
         }
 
         if (transientStrength > transientThresh) {
+            // Map transient strength (above threshold) to a boost multiplier
             const effectRange = 1.0 - transientThresh;
             const safeEffectRange = Math.max(effectRange, 0.0001);
-            const transientEffectMapped = Math.min(1.0, (transientStrength - transientThresh) / safeEffectRange);
-            const currentBoostFactor = 1.0 + transientEffectMapped * (maxBoost - 1.0);
+            const transientEffect = Math.min(1.0, (transientStrength - transientThresh) / safeEffectRange);
+            const currentBoostFactor = 1.0 + transientEffect * (maxBoost - 1.0);
+
+            // Combine transient-based speed with energy-based boost
             instantaneousTargetSpeed = baseCamSpeed * currentBoostFactor + energyBoost;
+
+            // Additional pulse boost on strong transients
             if (transientStrength > 0.4) {
-                instantaneousTargetSpeed *= 1.2; // Extra pulse
+                instantaneousTargetSpeed *= 1.2; // Extra boost for strong beats
             }
         } else {
+            // Even without transients, let energy influence the speed somewhat
             instantaneousTargetSpeed += energyBoost;
         }
+
+        // Ensure camera never goes below baseCameraSpeed (never goes backward)
         instantaneousTargetSpeed = Math.max(instantaneousTargetSpeed, baseCamSpeed);
     } else {
         // Not playing: camera speed smoothly moves towards the current baseCameraSpeed target set by controls.
@@ -370,6 +379,15 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
     }
     lastPlayingState = isPlaying; // Update for next frame's detection
 
+    // For smoothing, use either current speed or new target, whichever is higher
+    // This ensures we never decelerate below our current speed (no backward motion)
+    const finalTargetSpeedForSmoothing = Math.max(
+        smoothedValues.cameraSpeed.current, // The current actual speed
+        instantaneousTargetSpeed            // The desired speed based on current audio
+    );
+
+    // Get the current smoothing duration from state
+    const activeCameraSpeedSmoothingDuration = getSmoothComponentValue(smoothedValues.cameraSpeedSmoothingDuration, smoothedValues.cameraSpeedSmoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
 
     // Step 4: Smooth ALL parameters towards their targets.
     // Targets for audio-reactive params come from audioDrivenXXX (defaulted if not playing).
@@ -377,7 +395,6 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
 
     const activeSmoothingDuration = getSmoothComponentValue(smoothedValues.smoothingDuration, smoothedValues.smoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
     const activeColorSmoothingDuration = getSmoothComponentValue(smoothedValues.colorSmoothingDuration, smoothedValues.colorSmoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
-    const activeCameraSpeedSmoothingDuration = getSmoothComponentValue(smoothedValues.cameraSpeedSmoothingDuration, smoothedValues.cameraSpeedSmoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
 
     const finalUniforms = {
         energy: getSmoothValue('energy', audioDrivenEnergy, now), // 'energy' etc. are keys in smoothedValues for current/target state
@@ -387,7 +404,7 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
         time: currentTime, // This is audio currentTime, uTime (animationTime) is set in updateFrame
 
         // Control-driven parameters
-        cameraSpeed: getSmoothComponentValue(smoothedValues.cameraSpeed, instantaneousTargetSpeed, now, activeCameraSpeedSmoothingDuration),
+        cameraSpeed: getSmoothComponentValue(smoothedValues.cameraSpeed, finalTargetSpeedForSmoothing, now, activeCameraSpeedSmoothingDuration),
         transientEffect: getSmoothComponentValue(smoothedValues.transientEffect, smoothedValues.transientEffect.target, now, activeSmoothingDuration),
         colorIntensity: getSmoothComponentValue(smoothedValues.colorIntensity, smoothedValues.colorIntensity.target, now, activeSmoothingDuration),
         energyCameraEffect: getSmoothComponentValue(smoothedValues.energyCameraEffect, smoothedValues.energyCameraEffect.target, now, activeSmoothingDuration),
