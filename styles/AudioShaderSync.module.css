@@ -148,6 +148,14 @@
     margin-bottom: 1rem;
     padding-bottom: 1rem;
     border-bottom: 1px dashed #FF00FF;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.dropZoneActive {
+    background: rgba(255, 0, 255, 0.15);
+    border: 2px dashed #FF00FF;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
 }
 
 .fileInputContainer {

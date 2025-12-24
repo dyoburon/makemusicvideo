@@ -240,22 +240,22 @@ const ShaderVisualizer = ({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // Setup WebGL context
-        const gl = canvas.getContext('webgl2', { antialias: true, alpha: true });
+        // Setup WebGL context (antialiasing disabled for performance)
+        const gl = canvas.getContext('webgl2', { antialias: false, alpha: true, powerPreference: 'high-performance' });
         if (!gl) {
             console.error('WebGL 2.0 not supported. Falling back to WebGL 1.0');
-            const fallbackGL = canvas.getContext('webgl', { antialias: true, alpha: true }) ||
-                canvas.getContext('experimental-webgl', { antialias: true, alpha: true });
+            const fallbackGL = canvas.getContext('webgl', { antialias: false, alpha: true, powerPreference: 'high-performance' }) ||
+                canvas.getContext('experimental-webgl', { antialias: false, alpha: true, powerPreference: 'high-performance' });
             if (!fallbackGL) {
                 console.error('WebGL not supported in this browser');
                 return;
             }
         }
 
-        // Set canvas size with high-DPI display support
+        // Set canvas size (devicePixelRatio capped at 1 for performance)
         const setCanvasSize = () => {
             const canvasContainer = canvas.parentElement;
-            const devicePixelRatio = window.devicePixelRatio || 1;
+            const devicePixelRatio = 1; // Ignore high-DPI for performance
 
             // Set the display size (css pixels)
             canvas.style.width = '100%';
@@ -399,9 +399,18 @@ const ShaderVisualizer = ({
         // Performance monitoring variables
         let lastFpsUpdate = Date.now();
         let fps = 0;
+        let lastFrameTime = 0;
+        const targetFrameTime = 1000 / 30; // 30fps cap for performance
 
         // Animation function - now using our centralized update logic
-        const animate = () => {
+        const animate = (currentTime) => {
+            // 30fps frame limiter - skip frame if not enough time has passed
+            if (currentTime - lastFrameTime < targetFrameTime) {
+                animationFrameRef.current = requestAnimationFrame(animate);
+                return;
+            }
+            lastFrameTime = currentTime;
+
             // Calculate current frame count
             const currentFrameCount = frameCountRef.current;
 

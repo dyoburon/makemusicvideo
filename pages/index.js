@@ -37,6 +37,7 @@ const AudioShaderSync = () => {
     const [activeControlsView, setActiveControlsView] = useState('controls');
     const [paneSizes, setPaneSizes] = useState({ left: 40, right: 60 });
     const [isDragging, setIsDragging] = useState(false);
+    const [isDraggingFile, setIsDraggingFile] = useState(false);
     const containerRef = useRef(null);
 
     const audioRef = useRef(null);
@@ -98,6 +99,29 @@ const AudioShaderSync = () => {
         if (!file) return;
 
         // Use AudioAnalysisManager for file handling and analysis
+        await AudioAnalysisManager.setAudioFile(file, audioRef.current);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingFile(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingFile(false);
+    };
+
+    const handleDrop = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingFile(false);
+
+        const file = e.dataTransfer.files[0];
+        if (!file || !file.type.startsWith('audio/')) return;
+
         await AudioAnalysisManager.setAudioFile(file, audioRef.current);
     };
 
@@ -385,7 +409,13 @@ void main() {
                         flexDirection: 'column',
                         borderRight: '1px solid var(--anime-accent-secondary)'
                     }}>
-                        <div className={styles.fileUploadSection} style={{ marginBottom: '1rem', paddingBottom: '1rem' }}>
+                        <div
+                            className={`${styles.fileUploadSection} ${isDraggingFile ? styles.dropZoneActive : ''}`}
+                            style={{ marginBottom: '1rem', paddingBottom: '1rem' }}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                        >
                             <div className={styles.fileInputContainer} style={{ gap: '0.75rem' }}>
                                 <div className={styles.fileInput} style={{ flex: '0.7' }}>
                                     <input
@@ -394,10 +424,10 @@ void main() {
                                         onChange={handleFileChange}
                                         id="audio-file"
                                         ref={fileInputRef}
-                                        style={{ display: 'none' }} // Keep input hidden
+                                        style={{ display: 'none' }}
                                     />
                                     <label htmlFor="audio-file" className={styles.fileInputLabel} style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem 0.75rem' }}>
-                                        {audioState.audioFile ? 'Change Audio' : 'Select Audio'}
+                                        {isDraggingFile ? 'Drop Audio Here' : audioState.audioFile ? 'Change Audio' : 'Select or Drop Audio'}
                                     </label>
                                 </div>
 
@@ -405,7 +435,7 @@ void main() {
                                     onClick={handlePlayPause}
                                     disabled={!audioState.audioFile || audioState.isAnalyzing}
                                     className={`${styles.playButton} ${audioState.isPlaying ? styles.pause : styles.play}`}
-                                    style={{ padding: '0.6rem 0.75rem', fontSize: '0.8rem', flex: '0.3' }} // Adjusted padding
+                                    style={{ padding: '0.6rem 0.75rem', fontSize: '0.8rem', flex: '0.3' }}
                                 >
                                     {audioState.isAnalyzing ? 'Analyzing...' : audioState.isPlaying ? 'Pause' : 'Play'}
                                 </button>
@@ -583,7 +613,7 @@ void main() {
                                     key={selectedShader} // Unique key for re-mount on change
                                     shaderSrc={currentShaderSrc}
                                     onUpdateUniforms={handleUniformsUpdate}
-                                    resolutionScale={0.8} // Slightly increased resolution scale
+                                    resolutionScale={0.5} // Lower resolution for better performance
                                 />
                             )}
                             {!isLoadingShader && !currentShaderSrc && (
