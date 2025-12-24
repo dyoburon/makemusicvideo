@@ -62,8 +62,6 @@ const AudioShaderControls = ({
         // Tunnel and effect controls
         tunnelExpansion: initialParams.tunnelExpansion || 2.5,
         glowIntensity: initialParams.glowIntensity || 1.0,
-        breathingRate: initialParams.breathingRate || 0,
-        breathingAmount: initialParams.breathingAmount || 0,
     });
 
     // Track if any parameter has been changed since last apply
@@ -312,6 +310,10 @@ const AudioShaderControls = ({
 
             // Random boolean for color mode toggle
             useColorControls: Math.random() > 0.5,
+
+            // Random tunnel and effect controls
+            tunnelExpansion: randomInRange(0.5, 5.0),
+            glowIntensity: randomInRange(0.0, 3.0),
         };
 
         setParams(newParams);
@@ -351,6 +353,9 @@ const AudioShaderControls = ({
             smoothingDuration: 700,
             // Color mode toggle
             useColorControls: true,
+            // Tunnel and effect controls
+            tunnelExpansion: 2.5,
+            glowIntensity: 1.0,
         };
 
         setParams(defaultParams);
