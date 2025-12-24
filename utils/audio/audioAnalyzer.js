@@ -44,7 +44,7 @@ export class AudioAnalyzer {
         this.settings = {
             fftSize: 2048,
             bufferSize: 512,
-            hopSize: 256,
+            hopSize: 512,  // Doubled for performance (~11.6ms resolution, still fine for music)
             energyThreshold: 0.7,
             spectralFluxThreshold: 2.0,
             lowFrequencyThreshold: 0.8,
@@ -80,11 +80,8 @@ export class AudioAnalyzer {
             energy: [],
             spectralFlux: [],
             loudness: [],
-            perceptualSpread: [],
             spectralFlatness: [],
-            // Add new feature history tracking
             rms: [],
-            zcr: [],
             lowBandEnergy: [],
             midBandEnergy: [],
             highBandEnergy: []
@@ -129,6 +126,9 @@ export class AudioAnalyzer {
         }
 
         try {
+            const totalStartTime = performance.now();
+            console.log('[PERF] === FULL ANALYSIS PIPELINE START ===');
+
             // Reset results
             this.resetResults();
 
@@ -136,23 +136,35 @@ export class AudioAnalyzer {
             this.previousInputData = null;
 
             // Load audio file
+            console.log('[PERF] Loading audio file...');
+            const loadStartTime = performance.now();
             const audioBuffer = await this.loadAudioFile(audioFile);
-            console.log(`Loaded audio file: ${audioBuffer.duration.toFixed(2)} seconds`);
+            console.log(`[PERF] File loaded in ${((performance.now() - loadStartTime) / 1000).toFixed(2)}s`);
+            console.log(`[PERF] Audio duration: ${audioBuffer.duration.toFixed(2)}s, Sample rate: ${audioBuffer.sampleRate}`);
 
             // Cache the audio buffer for potential reuse
             this.cachedData.audioBuffer = audioBuffer;
 
             // Store audio data for waveform visualization
+            console.log('[PERF] Extracting waveform data...');
+            const waveformStartTime = performance.now();
             this.extractWaveformData(audioBuffer);
+            console.log(`[PERF] Waveform extracted in ${((performance.now() - waveformStartTime) / 1000).toFixed(2)}s`);
 
             // Perform offline analysis for better performance
+            console.log('[PERF] Starting main analysis...');
             await this.runOfflineAnalysis(audioBuffer);
 
             // Cache raw transients before processing
             this.cachedData.rawTransients = [...this.results.transients];
 
             // Process the collected data to find significant events
+            console.log('[PERF] Processing results...');
+            const processStartTime = performance.now();
             this.processAnalysisResults();
+            console.log(`[PERF] Results processed in ${((performance.now() - processStartTime) / 1000).toFixed(2)}s`);
+
+            console.log(`[PERF] === FULL ANALYSIS COMPLETE: ${((performance.now() - totalStartTime) / 1000).toFixed(2)}s ===`);
 
             return this.results;
         } catch (error) {
@@ -193,10 +205,16 @@ export class AudioAnalyzer {
      * @param {AudioBuffer} audioBuffer - The decoded audio buffer
      */
     async runOfflineAnalysis(audioBuffer) {
-        console.log('Starting offline analysis...');
+        const analysisStartTime = performance.now();
+        console.log('=== AUDIO ANALYSIS DEBUG START ===');
+        console.log(`[PERF] Starting offline analysis...`);
+        console.log(`[PERF] Audio duration: ${audioBuffer.duration.toFixed(2)}s`);
+        console.log(`[PERF] Sample rate: ${audioBuffer.sampleRate}`);
+        console.log(`[PERF] Total samples: ${audioBuffer.length}`);
         this.isAnalyzing = true;
 
         // Create an offline audio context for faster processing
+        const ctxStartTime = performance.now();
         const offlineContext = new OfflineAudioContext({
             numberOfChannels: audioBuffer.numberOfChannels,
             length: audioBuffer.length,
@@ -214,18 +232,14 @@ export class AudioAnalyzer {
         // Connect the source to the analyzer
         source.connect(analyser);
         analyser.connect(offlineContext.destination);
+        console.log(`[PERF] Context setup took: ${(performance.now() - ctxStartTime).toFixed(2)}ms`);
 
-        // Set up Meyda features to extract
+        // Set up Meyda features to extract (reduced for performance)
         const meydaFeatures = [
-            'energy',
-            'loudness',
-            'perceptualSpread',
-            'spectralFlatness',
-            'rms',
-            'zcr',
-            'mfcc',
-            'spectralCentroid',  // Added for timbral analysis
-            'spectralSpread'     // Added for timbral analysis
+            'energy',           // For energy peaks
+            'loudness',         // Essential - provides band energies
+            'rms',              // Essential - for transient detection
+            'spectralFlatness'  // For timbre changes
         ];
 
         // Process the audio in chunks
@@ -233,6 +247,9 @@ export class AudioAnalyzer {
         const hopSize = this.settings.hopSize;
         const totalSamples = audioBuffer.length;
         let currentSample = 0;
+        const totalIterations = Math.ceil(totalSamples / hopSize);
+        console.log(`[PERF] Buffer size: ${bufferSize}, Hop size: ${hopSize}`);
+        console.log(`[PERF] Total iterations expected: ${totalIterations}`);
 
         // Start the source
         source.start();
@@ -240,8 +257,18 @@ export class AudioAnalyzer {
         // Initialize a simple spectral flux calculator without relying on Meyda's implementation
         let previousSpectrum = null;
 
+        // Performance tracking
+        let iterationCount = 0;
+        let totalMeydaTime = 0;
+        let totalFluxTime = 0;
+        let totalStoreTime = 0;
+        let slowestMeydaTime = 0;
+        let lastLogTime = performance.now();
+        const loopStartTime = performance.now();
+
         // Process the audio in chunks
         while (currentSample < totalSamples && this.isAnalyzing) {
+            const iterStartTime = performance.now();
             const currentTime = currentSample / audioBuffer.sampleRate;
 
             // Get current audio data
@@ -249,32 +276,15 @@ export class AudioAnalyzer {
 
             try {
                 // Extract features with Meyda
+                const meydaStartTime = performance.now();
                 const features = Meyda.extract(meydaFeatures, audioData);
+                const meydaElapsed = performance.now() - meydaStartTime;
+                totalMeydaTime += meydaElapsed;
+                if (meydaElapsed > slowestMeydaTime) slowestMeydaTime = meydaElapsed;
 
-                // Calculate spectral flux manually using Web Audio API AnalyserNode
+                // Calculate spectral flux from direct buffer comparison
+                const fluxStartTime = performance.now();
                 let spectralFlux = 0;
-
-                // Create an AnalyserNode for spectrum analysis
-                const tempOfflineContext = new OfflineAudioContext(1, bufferSize, audioBuffer.sampleRate);
-                const tempAnalyser = tempOfflineContext.createAnalyser();
-                tempAnalyser.fftSize = 1024;
-
-                // Create a buffer source to get frequency data
-                const tempSource = tempOfflineContext.createBufferSource();
-                const tempBuffer = tempOfflineContext.createBuffer(1, bufferSize, tempOfflineContext.sampleRate);
-                const channelData = tempBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    channelData[i] = audioData[i];
-                }
-                tempSource.buffer = tempBuffer;
-                tempSource.connect(tempAnalyser);
-
-                // Get frequency data
-                const frequencyData = new Float32Array(tempAnalyser.frequencyBinCount);
-                tempSource.start();
-                tempOfflineContext.startRendering().then(() => {
-                    tempAnalyser.getFloatFrequencyData(frequencyData);
-                });
 
                 // Calculate spectral flux if we have previous data
                 if (this.previousInputData) {
@@ -291,9 +301,22 @@ export class AudioAnalyzer {
                 }
 
                 this.previousInputData = new Float32Array(audioData);
+                totalFluxTime += performance.now() - fluxStartTime;
 
                 // Add spectral flux to features with a minimum value
                 features.spectralFlux = Math.max(spectralFlux, 0.01);
+
+                // Log progress every second (real time)
+                const now = performance.now();
+                if (now - lastLogTime >= 1000) {
+                    const elapsed = (now - loopStartTime) / 1000;
+                    const progress = ((currentSample / totalSamples) * 100).toFixed(1);
+                    const iterPerSec = iterationCount / elapsed;
+                    const eta = (totalIterations - iterationCount) / iterPerSec;
+                    console.log(`[PERF] Progress: ${progress}% | Iter: ${iterationCount}/${totalIterations} | Speed: ${iterPerSec.toFixed(0)} iter/s | ETA: ${eta.toFixed(1)}s`);
+                    console.log(`[PERF]   Avg Meyda: ${(totalMeydaTime/iterationCount).toFixed(3)}ms | Slowest Meyda: ${slowestMeydaTime.toFixed(3)}ms`);
+                    lastLogTime = now;
+                }
 
                 // Debug logging to help understand detection issues
                 if (currentSample % (hopSize * 100) === 0) {
@@ -336,7 +359,9 @@ export class AudioAnalyzer {
                 }
 
                 // Store features with timestamp
+                const storeStartTime = performance.now();
                 this.storeEnhancedFeatures(features, currentTime);
+                totalStoreTime += performance.now() - storeStartTime;
 
             } catch (error) {
                 console.warn(`Error extracting features at time ${currentTime}:`, error);
@@ -345,17 +370,27 @@ export class AudioAnalyzer {
 
             // Move to next chunk
             currentSample += hopSize;
+            iterationCount++;
 
             // Allow UI thread to breathe on long analyses
-            if (currentSample % (hopSize * 100) === 0) {
+            if (iterationCount % 100 === 0) {
                 await new Promise(resolve => setTimeout(resolve, 0));
-                const progress = Math.min(100, Math.floor((currentSample / totalSamples) * 100));
-                console.log(`Analysis progress: ${progress}%`);
             }
         }
 
+        // Final performance summary
+        const totalTime = performance.now() - analysisStartTime;
+        console.log('=== AUDIO ANALYSIS DEBUG COMPLETE ===');
+        console.log(`[PERF] Total analysis time: ${(totalTime / 1000).toFixed(2)}s`);
+        console.log(`[PERF] Total iterations: ${iterationCount}`);
+        console.log(`[PERF] Avg time per iteration: ${(totalTime / iterationCount).toFixed(3)}ms`);
+        console.log(`[PERF] Breakdown:`);
+        console.log(`[PERF]   Meyda:     ${(totalMeydaTime / 1000).toFixed(2)}s (${((totalMeydaTime / totalTime) * 100).toFixed(1)}%)`);
+        console.log(`[PERF]   Flux calc: ${(totalFluxTime / 1000).toFixed(2)}s (${((totalFluxTime / totalTime) * 100).toFixed(1)}%)`);
+        console.log(`[PERF]   Store/Detect: ${(totalStoreTime / 1000).toFixed(2)}s (${((totalStoreTime / totalTime) * 100).toFixed(1)}%)`);
+        console.log(`[PERF]   Other:     ${((totalTime - totalMeydaTime - totalFluxTime - totalStoreTime) / 1000).toFixed(2)}s`);
+        console.log(`[PERF] Slowest Meyda call: ${slowestMeydaTime.toFixed(3)}ms`);
         this.isAnalyzing = false;
-        console.log('Offline analysis completed');
     }
 
     /**
@@ -399,10 +434,8 @@ export class AudioAnalyzer {
             specific: features.loudness.specific,
             time: timestamp
         });
-        this.featureHistory.perceptualSpread.push({ value: features.perceptualSpread, time: timestamp });
         this.featureHistory.spectralFlatness.push({ value: features.spectralFlatness, time: timestamp });
         this.featureHistory.rms.push({ value: features.rms, time: timestamp });
-        this.featureHistory.zcr.push({ value: features.zcr, time: timestamp });
 
         // Store band energies
         this.featureHistory.lowBandEnergy.push({ value: features.lowBandEnergy, time: timestamp });
@@ -653,8 +686,8 @@ export class AudioAnalyzer {
             this.results.timbreChanges.push({
                 time: timestamp,
                 flatness: currentFlatness,
-                spread: features.perceptualSpread,
-                centroid: features.spectralCentroid || 0,
+                spread: 0,   // Removed for performance
+                centroid: 0, // Removed for performance
                 intensity: flatnessChange
             });
         }
@@ -690,7 +723,7 @@ export class AudioAnalyzer {
             this.results.spectrumEvents.push({
                 time: timestamp,
                 flatness: features.spectralFlatness,
-                spread: features.perceptualSpread
+                spread: 0 // Removed for performance
             });
         }
     }
