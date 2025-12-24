@@ -37,8 +37,13 @@ export const smoothedValues = {
         lastUpdateTime: 0
     },
     highEnergy: {
-        current: 0.5,
-        target: 0.5,
+        current: 0,
+        target: 0,
+        lastUpdateTime: 0
+    },
+    midEnergy: {
+        current: 0,
+        target: 0,
         lastUpdateTime: 0
     },
     // Add new color states
@@ -156,6 +161,22 @@ export const smoothedValues = {
         current: true, // Default to using color controls
         target: true,
         lastUpdateTime: 0
+    },
+    // Band-specific response multipliers (like afk-ai)
+    bassResponse: {
+        current: 1.2,  // Bass hits hard
+        target: 1.2,
+        lastUpdateTime: 0
+    },
+    midResponse: {
+        current: 0.8,  // Mids moderate
+        target: 0.8,
+        lastUpdateTime: 0
+    },
+    trebleResponse: {
+        current: 0.5,  // Highs subtle but quick
+        target: 0.5,
+        lastUpdateTime: 0
     }
 };
 
@@ -251,11 +272,17 @@ function getSmoothColor(colorName, targetColor, now) {
 export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debugOptions = {}) {
     const now = Date.now();
 
+    // Get current band response multipliers
+    const bassResponse = smoothedValues.bassResponse.current;
+    const midResponse = smoothedValues.midResponse.current;
+    const trebleResponse = smoothedValues.trebleResponse.current;
+
     // Step 1: Determine base audio-reactive values.
-    // These default to idle values if audio is not playing or analysis is unavailable.
-    let audioDrivenEnergy = 0.5;
-    let audioDrivenLowEnergy = 0.5;
-    let audioDrivenHighEnergy = 0.5;
+    // Default to 0 (silent) when not playing - use FULL 0-1 range
+    let audioDrivenEnergy = 0;
+    let audioDrivenLowEnergy = 0;
+    let audioDrivenMidEnergy = 0;
+    let audioDrivenHighEnergy = 0;
     let audioDrivenTransients = 0;
 
     // Step 2: If audio is playing, process it and potentially trigger audio-reactive events.
@@ -267,14 +294,17 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
         };
         const liveRawUniforms = processAudioDataForShader(processedAudio);
 
-        audioDrivenEnergy = liveRawUniforms.energy;
-        audioDrivenLowEnergy = liveRawUniforms.lowEnergy;
-        audioDrivenHighEnergy = liveRawUniforms.highEnergy;
-        audioDrivenTransients = liveRawUniforms.transients;
+        // Apply band-specific response multipliers (like afk-ai)
+        // These amplify/dampen each frequency's visual impact
+        audioDrivenEnergy = Math.min(1.0, liveRawUniforms.energy * midResponse);
+        audioDrivenLowEnergy = Math.min(1.0, liveRawUniforms.lowEnergy * bassResponse);
+        audioDrivenMidEnergy = Math.min(1.0, (liveRawUniforms.midEnergy || liveRawUniforms.energy) * midResponse);
+        audioDrivenHighEnergy = Math.min(1.0, liveRawUniforms.highEnergy * trebleResponse);
+        audioDrivenTransients = Math.min(1.0, liveRawUniforms.transients * bassResponse); // Transients driven by bass
 
         // Add debug logging for audio processing (only when debug is requested)
         if (debugOptions.shouldLog) {
-            console.log(`[SHADER UPDATE] Audio processing - E:${audioDrivenEnergy.toFixed(2)}, L:${audioDrivenLowEnergy.toFixed(2)}, H:${audioDrivenHighEnergy.toFixed(2)}, T:${audioDrivenTransients.toFixed(2)}`);
+            console.log(`[SHADER UPDATE] Audio (with response) - E:${audioDrivenEnergy.toFixed(2)}, L:${audioDrivenLowEnergy.toFixed(2)}, M:${audioDrivenMidEnergy.toFixed(2)}, H:${audioDrivenHighEnergy.toFixed(2)}, T:${audioDrivenTransients.toFixed(2)}`);
         }
 
         // --- Transient-based Color Change Logic (only active if playing) ---
@@ -399,9 +429,15 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
     const finalUniforms = {
         energy: getSmoothValue('energy', audioDrivenEnergy, now), // 'energy' etc. are keys in smoothedValues for current/target state
         lowEnergy: getSmoothValue('lowEnergy', audioDrivenLowEnergy, now),
+        midEnergy: getSmoothValue('midEnergy', audioDrivenMidEnergy, now),
         highEnergy: getSmoothValue('highEnergy', audioDrivenHighEnergy, now),
         transients: getSmoothValue('transients', audioDrivenTransients, now),
         time: currentTime, // This is audio currentTime, uTime (animationTime) is set in updateFrame
+
+        // Band response multipliers (passed to shader for direct use)
+        bassResponse: getSmoothComponentValue(smoothedValues.bassResponse, smoothedValues.bassResponse.target, now, activeSmoothingDuration),
+        midResponse: getSmoothComponentValue(smoothedValues.midResponse, smoothedValues.midResponse.target, now, activeSmoothingDuration),
+        trebleResponse: getSmoothComponentValue(smoothedValues.trebleResponse, smoothedValues.trebleResponse.target, now, activeSmoothingDuration),
 
         // Control-driven parameters
         cameraSpeed: getSmoothComponentValue(smoothedValues.cameraSpeed, finalTargetSpeedForSmoothing, now, activeCameraSpeedSmoothingDuration),
@@ -542,17 +578,24 @@ export function updateFrame({
 
         // Set all uniforms from audioUniforms object
         if (audioUniforms) {
-            // Audio-reactive
+            // Audio-reactive (now using FULL 0-1 range with response multipliers applied)
             shaderProgram.setUniform1f('uEnergy', audioUniforms.energy);
             shaderProgram.setUniform1f('energy', audioUniforms.energy); // common alias
             shaderProgram.setUniform1f('uLowEnergy', audioUniforms.lowEnergy);
             shaderProgram.setUniform1f('lowEnergy', audioUniforms.lowEnergy);
+            shaderProgram.setUniform1f('uMidEnergy', audioUniforms.midEnergy);
+            shaderProgram.setUniform1f('midEnergy', audioUniforms.midEnergy);
             shaderProgram.setUniform1f('uHighEnergy', audioUniforms.highEnergy);
             shaderProgram.setUniform1f('highEnergy', audioUniforms.highEnergy);
             shaderProgram.setUniform1f('uTransients', audioUniforms.transients);
             shaderProgram.setUniform1f('transients', audioUniforms.transients);
             shaderProgram.setUniform1f('uAudioTime', audioUniforms.time); // This is audio's currentTime
             shaderProgram.setUniform1f('audioTime', audioUniforms.time); // alias
+
+            // Band response multipliers (for shader-side calculations)
+            shaderProgram.setUniform1f('uBassResponse', audioUniforms.bassResponse);
+            shaderProgram.setUniform1f('uMidResponse', audioUniforms.midResponse);
+            shaderProgram.setUniform1f('uTrebleResponse', audioUniforms.trebleResponse);
 
             // Control-driven
             shaderProgram.setUniform1f('uCameraSpeed', audioUniforms.cameraSpeed);

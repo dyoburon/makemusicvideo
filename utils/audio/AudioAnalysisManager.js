@@ -4,6 +4,7 @@
  */
 
 import { analyzeAudioFile } from './audioAnalyzer';
+import { initializeAdaptiveNormalizer, resetAdaptiveNormalizer } from './adaptiveAudioNormalizer';
 
 class AudioAnalysisManager {
     constructor() {
@@ -77,6 +78,9 @@ class AudioAnalysisManager {
         this.state.isAnalyzing = true;
         this.notifyListeners();
 
+        // Reset adaptive normalizer for new song
+        resetAdaptiveNormalizer();
+
         // Create object URL for audio element if provided
         if (audioElement) {
             const audioUrl = URL.createObjectURL(file);
@@ -92,6 +96,12 @@ class AudioAnalysisManager {
             const analysis = await analyzeAudioFile(file);
             this.state.audioAnalysis = analysis;
             console.log('Audio analysis complete:', analysis);
+
+            // Initialize adaptive normalizer with feature history
+            if (analysis.featureHistory) {
+                const success = initializeAdaptiveNormalizer(analysis.featureHistory);
+                console.log('Adaptive normalizer initialized:', success);
+            }
         } catch (error) {
             console.error('Error analyzing audio:', error);
         } finally {

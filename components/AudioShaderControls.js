@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../styles/AudioShaderSync.module.css';
-import { updateShaderParams } from '../utils/shaders/ShaderManager';
+import { updateShaderParams, setAdaptiveMode, isAdaptiveModeEnabled } from '../utils/shaders/ShaderManager';
+import { getAdaptiveNormalizer } from '../utils/audio/adaptiveAudioNormalizer';
+import { smoothedValues } from '../utils/shaders/ShaderUpdate';
 
 /**
  * AudioShaderControls Component
@@ -60,6 +62,15 @@ const AudioShaderControls = ({
 
     // Track if any parameter has been changed since last apply
     const [hasChanges, setHasChanges] = useState(false);
+
+    // Adaptive audio sync mode state
+    const [useAdaptiveMode, setUseAdaptiveMode] = useState(isAdaptiveModeEnabled());
+    const [adaptiveSensitivity, setAdaptiveSensitivity] = useState(0.5);
+
+    // Band response multipliers (like afk-ai)
+    const [bassResponse, setBassResponse] = useState(1.2);
+    const [midResponse, setMidResponse] = useState(0.8);
+    const [trebleResponse, setTrebleResponse] = useState(0.5);
 
     // Helper to convert RGB [0-1] to hex color string for input elements
     const rgbToHex = useCallback((r, g, b) => {
@@ -128,6 +139,38 @@ const AudioShaderControls = ({
             setHasChanges(true);
             return newParams;
         });
+    };
+
+    // Handle adaptive mode toggle
+    const handleAdaptiveModeChange = (enabled) => {
+        setUseAdaptiveMode(enabled);
+        setAdaptiveMode(enabled);
+    };
+
+    // Handle adaptive sensitivity change
+    const handleSensitivityChange = (value) => {
+        const sensitivity = parseFloat(value);
+        setAdaptiveSensitivity(sensitivity);
+        getAdaptiveNormalizer().setSensitivity(sensitivity);
+    };
+
+    // Handle band response changes - directly update smoothedValues
+    const handleBassResponseChange = (value) => {
+        const val = parseFloat(value);
+        setBassResponse(val);
+        smoothedValues.bassResponse.target = val;
+    };
+
+    const handleMidResponseChange = (value) => {
+        const val = parseFloat(value);
+        setMidResponse(val);
+        smoothedValues.midResponse.target = val;
+    };
+
+    const handleTrebleResponseChange = (value) => {
+        const val = parseFloat(value);
+        setTrebleResponse(val);
+        smoothedValues.trebleResponse.target = val;
     };
 
     // Randomize all colors with one click
@@ -317,6 +360,115 @@ const AudioShaderControls = ({
                     Apply
                 </button>
             </div>
+
+            {/* Audio Sync Mode */}
+            <details className={styles.customShaderContainer} style={{ marginTop: '6px', paddingTop: '6px', display: 'block' }} open>
+                <summary className={styles.customShaderSummary} style={{ fontSize: '0.85rem', padding: '2px 0', color: '#00FF00', marginBottom: '5px' }}>
+                    Audio Sync Mode
+                </summary>
+
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.switchLabel} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+                            Adaptive Mode:
+                            <div className={styles.toggleSwitch} style={{ position: 'relative', display: 'inline-block', margin: '0 8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={useAdaptiveMode}
+                                    onChange={(e) => handleAdaptiveModeChange(e.target.checked)}
+                                    className={styles.toggleInput}
+                                />
+                                <span className={styles.toggleSlider}></span>
+                            </div>
+                            <span className={styles.toggleHint} style={{ fontSize: '0.65rem', opacity: 0.8, fontStyle: 'italic', color: useAdaptiveMode ? '#00FF00' : '#FF6600' }}>
+                                {useAdaptiveMode ? 'ADAPTIVE (auto-tuning)' : 'LEGACY (threshold-based)'}
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                {useAdaptiveMode && (
+                    <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                        <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
+                                Sensitivity: {adaptiveSensitivity.toFixed(1)}
+                                <input
+                                    type="range"
+                                    min="0.0"
+                                    max="1.0"
+                                    step="0.1"
+                                    value={adaptiveSensitivity}
+                                    onChange={(e) => handleSensitivityChange(e.target.value)}
+                                    className={styles.rangeInput}
+                                    style={{ width: '100%', marginTop: '5px' }}
+                                />
+                            </label>
+                            <span style={{ fontSize: '0.65rem', color: '#888', marginTop: '2px' }}>
+                                Low = smooth/global | High = reactive/local
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Band Response Multipliers - like afk-ai */}
+                <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px dashed #444' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#FFD700', fontWeight: 'bold' }}>Band Response (like afk-ai)</span>
+                </div>
+
+                <div className={styles.controlsRow} style={{ marginBottom: '6px', marginTop: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#FF6B6B' }}>
+                            Bass Response: {bassResponse.toFixed(1)}x
+                            <input
+                                type="range"
+                                min="0.0"
+                                max="2.0"
+                                step="0.1"
+                                value={bassResponse}
+                                onChange={(e) => handleBassResponseChange(e.target.value)}
+                                className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                <div className={styles.controlsRow} style={{ marginBottom: '6px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#4ECDC4' }}>
+                            Mid Response: {midResponse.toFixed(1)}x
+                            <input
+                                type="range"
+                                min="0.0"
+                                max="1.5"
+                                step="0.1"
+                                value={midResponse}
+                                onChange={(e) => handleMidResponseChange(e.target.value)}
+                                className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                <div className={styles.controlsRow} style={{ marginBottom: '6px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#A78BFA' }}>
+                            Treble Response: {trebleResponse.toFixed(1)}x
+                            <input
+                                type="range"
+                                min="0.0"
+                                max="1.2"
+                                step="0.1"
+                                value={trebleResponse}
+                                onChange={(e) => handleTrebleResponseChange(e.target.value)}
+                                className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
+                            />
+                        </label>
+                    </div>
+                </div>
+            </details>
 
             {/* Color controls */}
             <details className={styles.customShaderContainer} style={{ marginTop: '6px', paddingTop: '6px', display: 'block' }} open>

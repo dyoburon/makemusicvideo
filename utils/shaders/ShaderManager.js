@@ -25,6 +25,7 @@ import emergingAbstractShapesShaderSource from './EmergingAbstractShapes.js';
 import colorfulWorldShaderSource from './ColorfulWorld.js';
 import colorfulSidewaysCityShaderSource from './ColorfulSidewaysCity.js';
 import waveformShaderSrc from './Waveform.js'
+import { getAdaptiveNormalizer, getAdaptiveValuesAtTime } from '../audio/adaptiveAudioNormalizer';
 
 // Collection of predefined shaders
 const shaderLibrary = {
@@ -206,6 +207,7 @@ export function processAudioDataForShader(audioData) {
     if (!processAudioDataForShader.lastResult) {
         processAudioDataForShader.lastResult = null;
         processAudioDataForShader.lastTimeStamp = 0;
+        processAudioDataForShader.useAdaptive = true; // Default to adaptive mode
         console.log('[AUDIO PROC DEBUG] Initializing audio processor cache');
     }
 
@@ -215,12 +217,29 @@ export function processAudioDataForShader(audioData) {
         return processAudioDataForShader.lastResult;
     }
 
-    // Add less verbose debugging for the input data  
+    // Add less verbose debugging for the input data
     if (!processAudioDataForShader.frameCount) {
         processAudioDataForShader.frameCount = 0;
     }
     processAudioDataForShader.frameCount++;
 
+    const currentTime = audioData?.currentTime || 0;
+
+    // Try adaptive normalizer first if enabled and initialized
+    const normalizer = getAdaptiveNormalizer();
+    if (processAudioDataForShader.useAdaptive && normalizer.isInitialized) {
+        const adaptiveResult = getAdaptiveValuesAtTime(currentTime);
+
+        if (processAudioDataForShader.frameCount % 60 === 0) {
+            console.log(`[AUDIO PROC ADAPTIVE] time=${currentTime.toFixed(2)}, E=${adaptiveResult.energy.toFixed(2)}, L=${adaptiveResult.lowEnergy.toFixed(2)}, H=${adaptiveResult.highEnergy.toFixed(2)}, T=${adaptiveResult.transients.toFixed(2)}`);
+        }
+
+        processAudioDataForShader.lastResult = adaptiveResult;
+        processAudioDataForShader.lastTimeStamp = now;
+        return adaptiveResult;
+    }
+
+    // Fall back to legacy threshold-based processing
     // Basic validation - FIXED: Changed from audioData.analysis.timeline to audioData.timeline
     if (!audioData || !audioData.timeline) {
         if (processAudioDataForShader.frameCount % 60 === 0) {
@@ -238,7 +257,6 @@ export function processAudioDataForShader(audioData) {
     }
 
     // Find the most recent events for different categories
-    const currentTime = audioData.currentTime || 0;
     const timeline = audioData.timeline; // FIXED: Changed from audioData.analysis.timeline
 
     // Only log processing details every 60 frames
@@ -531,6 +549,23 @@ export function updateShaderParams(params) {
     return params;
 }
 
+/**
+ * Toggle between adaptive and legacy audio processing modes
+ * @param {boolean} useAdaptive - True for adaptive mode, false for legacy
+ */
+export function setAdaptiveMode(useAdaptive) {
+    processAudioDataForShader.useAdaptive = useAdaptive;
+    console.log(`[SHADER MGR] Audio processing mode: ${useAdaptive ? 'ADAPTIVE' : 'LEGACY'}`);
+}
+
+/**
+ * Check if adaptive mode is currently enabled
+ * @returns {boolean}
+ */
+export function isAdaptiveModeEnabled() {
+    return processAudioDataForShader.useAdaptive !== false;
+}
+
 export default {
     loadLibraryShader,
     loadShaderFromURL,
@@ -538,5 +573,7 @@ export default {
     getAvailableShaders,
     processAudioDataForShader,
     shaderLibrary,
-    updateShaderParams
+    updateShaderParams,
+    setAdaptiveMode,
+    isAdaptiveModeEnabled
 }; 

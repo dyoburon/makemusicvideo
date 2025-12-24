@@ -336,10 +336,139 @@ This ensures:
 
 ---
 
+## Part 5: Implementation - Adaptive Audio Normalizer
+
+A new utility has been created at `utils/audio/adaptiveAudioNormalizer.js` that implements the recommended hybrid approach.
+
+### How It Works
+
+1. **Percentile Distributions**: After audio analysis, builds a lookup table mapping each value to its percentile rank within the song
+2. **Rolling Window**: Maintains a ~5 second window to detect local standouts
+3. **Combined Output**: Blends global percentile with local Z-score for responsive yet contextualized values
+
+### Integration Points
+
+The utility is designed to work alongside the existing system with minimal changes. Here's how to integrate:
+
+#### Option A: Replace processAudioDataForShader (Recommended)
+
+In `ShaderManager.js`, modify `processAudioDataForShader` to use the adaptive normalizer:
+
+```javascript
+import { getAdaptiveNormalizer, initializeAdaptiveNormalizer } from '../audio/adaptiveAudioNormalizer';
+
+// In processAudioDataForShader:
+export function processAudioDataForShader(audioData) {
+    const normalizer = getAdaptiveNormalizer();
+
+    if (!normalizer.isInitialized) {
+        // Fall back to original behavior if not initialized
+        return originalProcessAudioDataForShader(audioData);
+    }
+
+    // Get current features from timeline
+    const currentFeatures = extractCurrentFeatures(audioData);
+
+    // Use adaptive normalization
+    return normalizer.getShaderValues(currentFeatures);
+}
+```
+
+#### Option B: Initialize After Analysis
+
+In `AudioAnalysisManager.js`, after analysis completes:
+
+```javascript
+import { initializeAdaptiveNormalizer } from './adaptiveAudioNormalizer';
+
+// In setAudioFile, after analyzeAudioFile completes:
+const analysis = await analyzeAudioFile(file);
+this.state.audioAnalysis = analysis;
+
+// Initialize the adaptive normalizer with the feature history
+// Note: Need to expose featureHistory from AudioAnalyzer
+initializeAdaptiveNormalizer(analyzer.featureHistory);
+```
+
+#### Option C: UI Toggle (Gradual Rollout)
+
+Add a toggle in `AudioShaderControls.js` to switch between:
+- Legacy mode (threshold-based)
+- Adaptive mode (percentile-based)
+
+This allows A/B testing with users.
+
+### API Reference
+
+```javascript
+import {
+    getAdaptiveNormalizer,
+    initializeAdaptiveNormalizer,
+    getAdaptiveShaderValues,
+    resetAdaptiveNormalizer
+} from './adaptiveAudioNormalizer';
+
+// Initialize after audio analysis
+initializeAdaptiveNormalizer(featureHistory);
+
+// During playback - get normalized values
+const values = getAdaptiveShaderValues({
+    lowBandEnergy: currentLowEnergy,
+    midBandEnergy: currentMidEnergy,
+    highBandEnergy: currentHighEnergy,
+    energy: currentEnergy
+});
+// Returns: { energy, lowEnergy, highEnergy, transients }
+
+// Adjust sensitivity (0 = only global percentile, 1 = only local deviation)
+getAdaptiveNormalizer().setSensitivity(0.5);
+
+// Reset when loading new song
+resetAdaptiveNormalizer();
+```
+
+### Configuration
+
+The normalizer has these tunable parameters:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `rollingWindowSize` | 430 | Samples in rolling window (~5s at 86 samples/sec) |
+| `localSensitivity` | 0.5 | Blend between global (0) and local (1) normalization |
+| `activeFloor` | 0.3 | Percentile below which values fade to 0 |
+| `percentileBins` | 100 | Resolution of percentile lookup table |
+
+### Single Sensitivity Slider
+
+Replace the 6 threshold sliders with one "Sensitivity" control:
+
+```javascript
+// In AudioShaderControls.js
+<Slider
+    label="Sensitivity"
+    value={sensitivity}
+    min={0}
+    max={1}
+    step={0.1}
+    onChange={(v) => {
+        getAdaptiveNormalizer().setSensitivity(v);
+    }}
+/>
+```
+
+- **Low sensitivity (0.0-0.3)**: Smooth, song-wide normalization. Good for ambient/classical.
+- **Medium sensitivity (0.3-0.7)**: Balanced response. Good for most pop/rock.
+- **High sensitivity (0.7-1.0)**: Highly reactive to local changes. Good for dynamic EDM.
+
+---
+
 ## Next Steps
 
-1. [ ] Prototype percentile-based mapping in audioAnalyzer.js
-2. [ ] Add rolling statistics calculation
-3. [ ] Replace threshold sliders with single sensitivity control
-4. [ ] Test with diverse music: EDM, classical, hip-hop, acoustic, jazz
-5. [ ] Measure sync quality objectively (peak alignment accuracy)
+1. [x] Create adaptive normalizer utility (`adaptiveAudioNormalizer.js`)
+2. [ ] Expose `featureHistory` from `AudioAnalyzer` class
+3. [ ] Call `initializeAdaptiveNormalizer()` after analysis completes
+4. [ ] Modify `processAudioDataForShader()` to use adaptive values
+5. [ ] Add UI toggle to switch between legacy/adaptive modes
+6. [ ] Replace threshold sliders with single sensitivity control
+7. [ ] Test with diverse music: EDM, classical, hip-hop, acoustic, jazz
+8. [ ] Measure sync quality (peak alignment accuracy)

@@ -1331,7 +1331,9 @@ export class AudioAnalyzer {
                 ? this.featureHistory.energy[this.featureHistory.energy.length - 1].time
                 : 0,
             // Include raw audio samples for waveform display
-            audioData: this.audioData
+            audioData: this.audioData,
+            // Include feature history for adaptive normalization
+            featureHistory: this.featureHistory
         };
     }
 

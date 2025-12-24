@@ -2,6 +2,7 @@
  * RetroTunnelShader.js
  * Exports a retro-style neon tunnel shader for direct use in JavaScript.
  * Enhanced with comprehensive audio reactivity including energy, low/high frequency response.
+ * CRANKED UP multipliers for better music sync!
  */
 
 const retroTunnelShaderSource = `#version 300 es
@@ -13,11 +14,17 @@ uniform float uTime;
 uniform vec2 uResolution;
 uniform float uCameraSpeed; // Controls movement speed through tunnel
 
-// Audio analysis uniforms
+// Audio analysis uniforms (now using FULL 0-1 range!)
 uniform float uTransients;   // Beat detection
 uniform float uEnergy;       // Overall audio energy
-uniform float uLowEnergy;    // Low frequency energy
-uniform float uHighEnergy;   // High frequency energy
+uniform float uLowEnergy;    // Low frequency energy (bass)
+uniform float uMidEnergy;    // Mid frequency energy
+uniform float uHighEnergy;   // High frequency energy (treble)
+
+// Band response multipliers (like afk-ai)
+uniform float uBassResponse;    // How strongly bass affects visuals
+uniform float uMidResponse;     // How strongly mids affect visuals
+uniform float uTrebleResponse;  // How strongly highs affect visuals
 
 // New uniforms for effect intensity and specific audio component effects
 uniform float uTransientIntensity;    // Overall intensity of transient effects (from existing transientEffect slider)
@@ -73,17 +80,17 @@ vec3 randomColor(float seed) {
 float prm1 = 0.;
 vec2 bsMo = vec2(0);
 
-// Displacement for tunnel swirl - with audio reactivity
-vec2 disp(float t) { 
-    // Camera speed influences tunnel expansion
-    float expansion = 1.5 * (1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.10);
-    
-    // Low frequency influences the tunnel width - bass makes it expand
-    expansion *= 1.0 + uLowEnergy * uEnergyCameraEffect * 0.2;
-    
-    // High frequency influences tunnel asymmetry - creates more dynamic shape
-    float asymmetry = uHighEnergy * uEnergyCameraEffect * 0.1;
-    
+// Displacement for tunnel swirl - with CRANKED UP audio reactivity
+vec2 disp(float t) {
+    // Camera speed influences tunnel expansion - CRANKED from 0.10 to 0.5
+    float expansion = 1.5 * (1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.5);
+
+    // Low frequency influences the tunnel width - bass makes it expand BIG - CRANKED from 0.2 to 0.8
+    expansion *= 1.0 + uLowEnergy * uEnergyCameraEffect * 0.8;
+
+    // High frequency influences tunnel asymmetry - CRANKED from 0.1 to 0.4
+    float asymmetry = uHighEnergy * uEnergyCameraEffect * 0.4;
+
     // Faster camera motion creates more dynamic swirls
     float swirl = uCameraSpeed * 0.15;
     return vec2(
@@ -92,71 +99,71 @@ vec2 disp(float t) {
     );
 }
 
-// Noise-based map function with enhanced audio reactivity
+// Noise-based map function with CRANKED UP audio reactivity
 vec2 map(vec3 p) {
     vec3 p2 = p;
     p2.xy -= disp(p.z).xy; // Displace for tunnel effect
-    
-    // Rotation speed influenced by camera speed and high frequency energy
+
+    // Rotation speed influenced by camera speed and high frequency energy - CRANKED from 0.2 to 0.6
     float rotationSpeed = sin(p.z + uTime) * 0.15 + uTime * 0.1 * min(uCameraSpeed, 2.0);
-    rotationSpeed *= 1.0 + uHighEnergy * uEnergyCameraEffect * 0.2; // High frequencies make it rotate faster
+    rotationSpeed *= 1.0 + uHighEnergy * uEnergyCameraEffect * 0.6; // High frequencies make it rotate faster
     p.xy *= rot(rotationSpeed);
-    
+
     float cl = mag2(p2.xy);
     float d = 0.;
-    
+
     // No scale change for pattern - removed to reduce jerkiness
     float z = 1.;
     float trk = 1.;
-    
-    // Amplitude boost controlled by transients and energy
-    float dspAmp = 0.15 * (1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.10 + uEnergy * uEnergyCameraEffect * 0.05);
-    
+
+    // Amplitude boost controlled by transients and energy - CRANKED from 0.10/0.05 to 0.4/0.2
+    float dspAmp = 0.15 * (1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.4 + uEnergy * uEnergyCameraEffect * 0.2);
+
     // Fewer iterations for simpler, retro-style noise
     for (int i = 0; i < 2; i++) {
-        // Make the noise pattern react to audio
-        float noiseScale = 0.8 * (1.0 + uEnergy * uEnergyCameraEffect * 0.05);
+        // Make the noise pattern react to audio - CRANKED from 0.05 to 0.2
+        float noiseScale = 0.8 * (1.0 + uEnergy * uEnergyCameraEffect * 0.2);
         p += sin(p.zxy * noiseScale * trk + uTime * trk * 0.7) * dspAmp;
         d -= abs(dot(cos(p), sin(p.yzx)) * z);
         z *= 0.6;
         trk *= 1.5;
         p = p * m3;
     }
-    
-    // Combined transient and low frequency effect for tunnel shape
-    float audioShrink = 1.0 - (uTransients * uTransientIntensity * uTransientCameraEffect * 0.10 + uLowEnergy * uEnergyCameraEffect * 0.05);
-    
+
+    // Combined transient and low frequency effect for tunnel shape - CRANKED from 0.10/0.05 to 0.4/0.2
+    float audioShrink = 1.0 - (uTransients * uTransientIntensity * uTransientCameraEffect * 0.4 + uLowEnergy * uEnergyCameraEffect * 0.2);
+
     // NEW: Add breathing effect to the tunnel hole size
     // Create a slow oscillation for the tunnel hole size based on time
     // Using uniform variables instead of hardcoded values
     float breathingPhase = sin(uTime * uBreathingRate);
     float breathingFactor = 1.0 + uBreathingAmount * (50.0 + 50.0 * breathingPhase);
-    
+
     d = abs(d + prm1 * 2.) + prm1 * 0.2 - 2. + bsMo.y;
-    
+
     // Apply both audio reactivity and breathing effect to the tunnel size
     d *= audioShrink * breathingFactor;
-    
+
     return vec2(d + cl * 0.15 + 0.3, cl);
 }
 
-// Render function with enhanced audio reactivity
+// Render function with CRANKED UP audio reactivity
 vec4 render(vec3 ro, vec3 rd, float time) {
     vec4 rez = vec4(0);
     const float ldst = 6.;
     vec3 lpos = vec3(disp(time + ldst) * 0.4, time + ldst);
     float t = 1.;
     float fogT = 0.;
-    
-    // Tunnel speed variation with combined audio inputs
-    float tunnelSpeedFactor = 1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.10 + uEnergy * uEnergyCameraEffect * 0.05;
-    
+
+    // Tunnel speed variation with combined audio inputs - CRANKED from 0.10/0.05 to 0.4/0.2
+    float tunnelSpeedFactor = 1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.4 + uEnergy * uEnergyCameraEffect * 0.2;
+
     // Motion blur effect increases with speed and high frequencies
-    float motionBlurFactor = 0.0; // clamp((uCameraSpeed - 1.0) * 0.2, 0.0, 0.5) * (1.0 + uHighEnergy * uEnergyCameraEffect * 0.1); // Set to 0 to remove motion blur
-    
+    float motionBlurFactor = 0.0; // Set to 0 to remove motion blur
+
     for (int i = 0; i < 500; i++) {
         if (rez.a > 0.99) break;
-        
+
         vec3 pos = ro + t * rd * tunnelSpeedFactor; // Speed-adjusted ray position
         vec2 mpv = map(pos);
         float den = clamp(mpv.x - 0.4, 0., 1.) * 1.2;
@@ -168,69 +175,72 @@ vec4 render(vec3 ro, vec3 rd, float time) {
             vec3 baseCol = uColor1; // Default color
             if (mpv.y > 0.5) baseCol = uColor2; // Second color zone
             if (mpv.y > 1.0) baseCol = uColor3; // Third color zone
-            
-            // Enhanced color reactivity using all audio parameters
-            if (uTransients * uTransientIntensity > 0.1) {
-                // Transients boost brightness
-                baseCol *= 1.0 + uTransients * uTransientIntensity * uTransientColorEffect * 0.3;
+
+            // Enhanced color reactivity using all audio parameters - CRANKED from 0.3 to 1.0
+            if (uTransients * uTransientIntensity > 0.05) {  // Lowered threshold from 0.1 to 0.05
+                // Transients boost brightness HARD
+                baseCol *= 1.0 + uTransients * uTransientIntensity * uTransientColorEffect * 1.0;
             }
-            
-            if (uLowEnergy * uEnergyColorEffect > 0.6) {
-                // Strong bass shifts colors toward red/warm
-                baseCol.r *= 1.0 + (uLowEnergy * uEnergyColorEffect - 0.6) * 0.5;
+
+            // CRANKED: Lowered threshold from 0.6 to 0.2, increased multiplier from 0.5 to 1.5
+            if (uLowEnergy * uEnergyColorEffect > 0.2) {
+                // Strong bass shifts colors toward red/warm - MUCH stronger effect
+                baseCol.r *= 1.0 + (uLowEnergy * uEnergyColorEffect - 0.2) * 1.5;
+                baseCol.g *= 1.0 + (uLowEnergy * uEnergyColorEffect - 0.2) * 0.3; // Slight warmth
             }
-            
-            if (uHighEnergy * uEnergyColorEffect > 0.6) {
-                // High frequencies enhance blues/cyans
-                baseCol.b *= 1.0 + (uHighEnergy * uEnergyColorEffect - 0.6) * 0.5;
+
+            // CRANKED: Lowered threshold from 0.6 to 0.2, increased multiplier
+            if (uHighEnergy * uEnergyColorEffect > 0.2) {
+                // High frequencies enhance blues/cyans - stronger effect
+                baseCol.b *= 1.0 + (uHighEnergy * uEnergyColorEffect - 0.2) * 1.2;
             }
-            
-            // Color pulsing influenced by overall energy
+
+            // Color pulsing influenced by overall energy - CRANKED from 0.3 to 0.6
             float pulseFactor = 0.5 + 0.5 * sin(pos.z * 0.3 + uTime);
-            pulseFactor = mix(pulseFactor, 0.5 + 0.5 * sin(pos.z * 0.3 + uTime * 2.0), uEnergy * uEnergyColorEffect * 0.3);
+            pulseFactor = mix(pulseFactor, 0.5 + 0.5 * sin(pos.z * 0.3 + uTime * 2.0), uEnergy * uEnergyColorEffect * 0.6);
             col = vec4(baseCol * pulseFactor, 0.1);
-            
+
             col *= den * den;
             col.rgb *= linstep(3.5, -2., mpv.x) * 2.0;
             float dif = clamp(den / 8., 0.001, 1.);
             col.xyz *= den * (vec3(0.01, 0.05, 0.08) + 1.2 * vec3(0.05, 0.1, 0.05) * dif);
-            
-            // Combined audio reactivity for brightness
-            col.rgb *= 1.0 + uTransients * uTransientIntensity * uTransientColorEffect * 0.3 + uLowEnergy * uEnergyColorEffect * 0.1 + uHighEnergy * uEnergyColorEffect * 0.1;
-            
-            // Add subtle glow with speed and energy
-            col.rgb *= 1.0 + clamp(uCameraSpeed - 1.0, 0.0, 1.0) * 0.115 * (1.0 + uEnergy * uEnergyCameraEffect * 0.1);
+
+            // Combined audio reactivity for brightness - CRANKED from 0.3/0.1/0.1 to 0.8/0.5/0.4
+            col.rgb *= 1.0 + uTransients * uTransientIntensity * uTransientColorEffect * 0.8 + uLowEnergy * uEnergyColorEffect * 0.5 + uHighEnergy * uEnergyColorEffect * 0.4;
+
+            // Add subtle glow with speed and energy - CRANKED from 0.1 to 0.3
+            col.rgb *= 1.0 + clamp(uCameraSpeed - 1.0, 0.0, 1.0) * 0.115 * (1.0 + uEnergy * uEnergyCameraEffect * 0.3);
         }
 
-        // Fog influenced by audio
+        // Fog influenced by audio - CRANKED from 0.05 to 0.2
         float baseFogStrength = 0.15 + motionBlurFactor;
-        float audioFogStrength = uHighEnergy * uEnergyCameraEffect * 0.05;
+        float audioFogStrength = uHighEnergy * uEnergyCameraEffect * 0.2;
         float fogStrength = (baseFogStrength + audioFogStrength) / 5.0; // Reduced fog strength
         float fogC = exp(t * fogStrength - 2.);
-        
+
         // Dynamic fog color
         vec4 fogColor = vec4(uFogColor, 0.08);
-        // Brighter fog during audio events
+        // Brighter fog during audio events - CRANKED from 0.02 to 0.1
         vec4 activeFogColor = vec4(
-            mix(uFogColor, uFogColor * 1.5, uTransients * uTransientIntensity * uTransientColorEffect),
-            0.08 + uEnergy * uEnergyColorEffect * 0.02 // Stronger fog effect with higher energy
+            mix(uFogColor, uFogColor * 2.0, uTransients * uTransientIntensity * uTransientColorEffect),
+            0.08 + uEnergy * uEnergyColorEffect * 0.1 // Stronger fog effect with higher energy
         );
-        
-        // Apply audio reactivity to fog
+
+        // Apply audio reactivity to fog - CRANKED from 0.6/0.2/0.2 to 1.0/0.5/0.4
         fogColor = mix(
-            fogColor, 
-            activeFogColor, 
-            uTransients * uTransientIntensity * uTransientColorEffect * 0.6 + uLowEnergy * uEnergyColorEffect * 0.2 + uHighEnergy * uEnergyColorEffect * 0.2
+            fogColor,
+            activeFogColor,
+            uTransients * uTransientIntensity * uTransientColorEffect * 1.0 + uLowEnergy * uEnergyColorEffect * 0.5 + uHighEnergy * uEnergyColorEffect * 0.4
         );
-        
+
         col.rgba += fogColor * clamp(fogC - fogT, 0., 1.); // Re-enabled fog application
         fogT = fogC;
         rez = rez + col * (1. - rez.a);
-        
-        // Step size influenced by camera speed and energy
-        float speedAdjustedStep = clamp(0.4 - dn * dn * 0.06, 0.1, 0.35) * 
-                                 (1.0 + motionBlurFactor) * 
-                                 (1.0 + uEnergy * uEnergyCameraEffect * 0.05); // Overall energy makes rays go further
+
+        // Step size influenced by camera speed and energy - CRANKED from 0.05 to 0.15
+        float speedAdjustedStep = clamp(0.4 - dn * dn * 0.06, 0.1, 0.35) *
+                                 (1.0 + motionBlurFactor) *
+                                 (1.0 + uEnergy * uEnergyCameraEffect * 0.15); // Overall energy makes rays go further
         t += speedAdjustedStep;
     }
     return clamp(rez, 0., 1.);
@@ -252,69 +262,69 @@ void main() {
     vec2 q = vTexCoord;
     vec2 p = (vTexCoord * 2.0 - 1.0);
     p.x *= uResolution.x / uResolution.y; // Aspect ratio correction
-    
-    // Camera movement influenced by audio
+
+    // Camera movement influenced by audio - CRANKED from 0.1 to 0.4
     bsMo = vec2(0.0, 0.0);
-    // Low frequencies create subtle horizontal shifts
-    bsMo.x += sin(uTime * 0.3) * 0.1 * (1.0 + uLowEnergy * uEnergyCameraEffect * 0.1);
-    // High frequencies create subtle vertical shifts
-    bsMo.y += cos(uTime * 0.4) * 0.05 * uHighEnergy * uEnergyCameraEffect;
-    
-    // Time flow affected by energy
-    float timeScale = 1.0 + uEnergy * uEnergyCameraEffect * 0.1;
+    // Low frequencies create horizontal shifts - bass makes camera sway
+    bsMo.x += sin(uTime * 0.3) * 0.1 * (1.0 + uLowEnergy * uEnergyCameraEffect * 0.4);
+    // High frequencies create vertical shifts - CRANKED from 0.05 to 0.2
+    bsMo.y += cos(uTime * 0.4) * 0.05 * (1.0 + uHighEnergy * uEnergyCameraEffect * 0.2);
+
+    // Time flow affected by energy - CRANKED from 0.1 to 0.3
+    float timeScale = 1.0 + uEnergy * uEnergyCameraEffect * 0.3;
     float time = uTime * uCameraSpeed * timeScale; // Modified to use energy and camera speed
-    
+
     // Position with audio-reactive movement
     vec3 ro = vec3(0, 0, time);
-    
-    // Displacement amplitude influenced by low frequency
-    float dspAmp = 0.9 * (1.0 + uLowEnergy * uEnergyCameraEffect * 0.1);
+
+    // Displacement amplitude influenced by low frequency - CRANKED from 0.1 to 0.4
+    float dspAmp = 0.9 * (1.0 + uLowEnergy * uEnergyCameraEffect * 0.4);
     ro.xy += disp(ro.z) * dspAmp;
-    
+
     float tgtDst = 3.;
     vec3 target = normalize(ro - vec3(disp(time + tgtDst) * dspAmp, time + tgtDst));
     ro.x -= bsMo.x * 1.5;
     ro.y -= bsMo.y * 1.5;
-    
+
     // Standard camera direction calculation
     vec3 rightdir = normalize(cross(target, vec3(0, 1, 0)));
     vec3 updir = normalize(cross(rightdir, target));
     rightdir = normalize(cross(updir, target));
     vec3 rd = normalize((p.x * rightdir + p.y * updir) * 1.0 - target);
-    
-    // Rotation influenced by camera speed and high frequencies
+
+    // Rotation influenced by camera speed and high frequencies - CRANKED from 0.2 to 0.5
     float rotAmount = -disp(time + 3.).x * 0.15 + bsMo.x;
-    rotAmount *= mix(1.0, 1.5, clamp(uCameraSpeed - 1.0, 0.0, 1.0) * (1.0 + uHighEnergy * uEnergyCameraEffect * 0.2));
+    rotAmount *= mix(1.0, 1.5, clamp(uCameraSpeed - 1.0, 0.0, 1.0) * (1.0 + uHighEnergy * uEnergyCameraEffect * 0.5));
     rd.xy *= rot(rotAmount);
-    
-    // Parameter modulation with audio variance
-    prm1 = smoothstep(-0.5, 0.5, sin(uTime * 0.4 * (1.0 + uEnergy * uEnergyCameraEffect * 0.1)));
+
+    // Parameter modulation with audio variance - CRANKED from 0.1 to 0.3
+    prm1 = smoothstep(-0.5, 0.5, sin(uTime * 0.4 * (1.0 + uEnergy * uEnergyCameraEffect * 0.3)));
     vec4 scn = render(ro, rd, time);
-    
+
     vec3 col = scn.rgb;
-    // Color mixing based on parameter and high frequency influence
+    // Color mixing based on parameter and high frequency influence - CRANKED from 0.2 to 0.5
     float colorMix = clamp(1. - prm1, 0.1, 1.);
-    colorMix = mix(colorMix, 1.0 - colorMix, uHighEnergy * uEnergyColorEffect * 0.2); // High frequencies can invert the effect
+    colorMix = mix(colorMix, 1.0 - colorMix, uHighEnergy * uEnergyColorEffect * 0.5); // High frequencies can invert the effect
     col = iLerp(col.bgr, col.rgb, colorMix);
-    
-    // Retro post-processing with subtle audio enhancement
-    col = pow(col, vec3(0.6, 0.7, 0.65) * (1.0 - uLowEnergy * uEnergyColorEffect * 0.05)) * vec3(1., 0.95, 0.9);
-    
-    // Vignette strength affected by energy
-    float vignetteStrength = 0.6 + uEnergy * uEnergyColorEffect * 0.1;
+
+    // Retro post-processing with subtle audio enhancement - CRANKED from 0.05 to 0.15
+    col = pow(col, vec3(0.6, 0.7, 0.65) * (1.0 - uLowEnergy * uEnergyColorEffect * 0.15)) * vec3(1., 0.95, 0.9);
+
+    // Vignette strength affected by energy - CRANKED from 0.1 to 0.3
+    float vignetteStrength = 0.6 + uEnergy * uEnergyColorEffect * 0.3;
     // col *= pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.2) * vignetteStrength + 0.4; // Vignette commented out
-    
-    // Scanlines affected by high frequencies
-    float scanlineIntensity = 0.1 * (1.0 + uHighEnergy * uEnergyColorEffect * 0.2);
+
+    // Scanlines affected by high frequencies - CRANKED from 0.2 to 0.5
+    float scanlineIntensity = 0.1 * (1.0 + uHighEnergy * uEnergyColorEffect * 0.5);
     float scanlineStrength = 0.9 + scanlineIntensity * sin(vTexCoord.y * 50.0 + uTime * 0.5);
     // col *= scanlineStrength; // Scanlines commented out
-    
-    // Glow effects enhanced by audio
-    vec3 audioReactiveGlow = uGlowColor * (uTransients * uTransientIntensity * uTransientColorEffect * 0.8 + uLowEnergy * uEnergyColorEffect * 0.3 + uHighEnergy * uEnergyColorEffect * 0.5);
-    col += audioReactiveGlow * 2.0; // Increased glow
-    
-    // Final color output with subtle energy-based saturation boost
-    fragColor = vec4(col * (1.0 + uEnergy * uEnergyColorEffect * 0.05), 1.0);
+
+    // Glow effects enhanced by audio - CRANKED from 0.8/0.3/0.5 to 2.0/1.0/1.0
+    vec3 audioReactiveGlow = uGlowColor * (uTransients * uTransientIntensity * uTransientColorEffect * 2.0 + uLowEnergy * uEnergyColorEffect * 1.0 + uHighEnergy * uEnergyColorEffect * 1.0);
+    col += audioReactiveGlow * 3.0; // CRANKED from 2.0 to 3.0
+
+    // Final color output with energy-based saturation boost - CRANKED from 0.05 to 0.2
+    fragColor = vec4(col * (1.0 + uEnergy * uEnergyColorEffect * 0.2), 1.0);
 }
 `;
 
