@@ -33,3 +33,4 @@ Navigate to `http://localhost:3000`
 
 - [ ] Implement video export functionality
 - [ ] Implement correct music sync for all current shaders
+- [ ] Hook up color controls to remaining shaders (RetroNeonTunnel is done)
