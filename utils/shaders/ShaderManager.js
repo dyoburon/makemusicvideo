@@ -207,7 +207,7 @@ export function processAudioDataForShader(audioData) {
     if (!processAudioDataForShader.lastResult) {
         processAudioDataForShader.lastResult = null;
         processAudioDataForShader.lastTimeStamp = 0;
-        processAudioDataForShader.useAdaptive = true; // Default to adaptive mode
+        processAudioDataForShader.useAdaptive = false; // Default to legacy mode (adaptive disabled)
         console.log('[AUDIO PROC DEBUG] Initializing audio processor cache');
     }
 
@@ -225,7 +225,9 @@ export function processAudioDataForShader(audioData) {
 
     const currentTime = audioData?.currentTime || 0;
 
-    // Try adaptive normalizer first if enabled and initialized
+    // DISABLED: Adaptive mode - keeping code for future use
+    // To re-enable, uncomment this block and set processAudioDataForShader.useAdaptive = true
+    /*
     const normalizer = getAdaptiveNormalizer();
     if (processAudioDataForShader.useAdaptive && normalizer.isInitialized) {
         const adaptiveResult = getAdaptiveValuesAtTime(currentTime);
@@ -238,8 +240,9 @@ export function processAudioDataForShader(audioData) {
         processAudioDataForShader.lastTimeStamp = now;
         return adaptiveResult;
     }
+    */
 
-    // Fall back to legacy threshold-based processing
+    // Legacy threshold-based processing (currently active)
     // Basic validation - FIXED: Changed from audioData.analysis.timeline to audioData.timeline
     if (!audioData || !audioData.timeline) {
         if (processAudioDataForShader.frameCount % 60 === 0) {
@@ -563,7 +566,7 @@ export function setAdaptiveMode(useAdaptive) {
  * @returns {boolean}
  */
 export function isAdaptiveModeEnabled() {
-    return processAudioDataForShader.useAdaptive !== false;
+    return processAudioDataForShader.useAdaptive === true; // Default to false (legacy mode)
 }
 
 export default {

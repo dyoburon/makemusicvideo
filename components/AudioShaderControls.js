@@ -72,6 +72,9 @@ const AudioShaderControls = ({
     const [midResponse, setMidResponse] = useState(0.8);
     const [trebleResponse, setTrebleResponse] = useState(0.5);
 
+    // Debug beat flash toggle
+    const [debugBeatEnabled, setDebugBeatEnabled] = useState(false);
+
     // Helper to convert RGB [0-1] to hex color string for input elements
     const rgbToHex = useCallback((r, g, b) => {
         const toHex = (value) => {
@@ -171,6 +174,14 @@ const AudioShaderControls = ({
         const val = parseFloat(value);
         setTrebleResponse(val);
         smoothedValues.trebleResponse.target = val;
+    };
+
+    // Handle debug beat flash toggle
+    const handleDebugBeatToggle = (enabled) => {
+        setDebugBeatEnabled(enabled);
+        smoothedValues.debugBeatEnabled.current = enabled ? 1 : 0;
+        smoothedValues.debugBeatEnabled.target = enabled ? 1 : 0;
+        console.log(`[DEBUG BEAT] ${enabled ? 'ENABLED' : 'DISABLED'} - Screen will flash on each beat`);
     };
 
     // Randomize all colors with one click
@@ -367,6 +378,31 @@ const AudioShaderControls = ({
                     Audio Sync Mode
                 </summary>
 
+                {/* Debug Beat Flash Toggle - prominent at top for debugging */}
+                <div className={styles.controlsRow} style={{ marginBottom: '12px', padding: '8px', backgroundColor: debugBeatEnabled ? 'rgba(255, 0, 0, 0.2)' : 'rgba(50, 50, 50, 0.3)', borderRadius: '4px', border: debugBeatEnabled ? '2px solid #FF0000' : '1px dashed #666' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.switchLabel} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+                            Debug Beat Flash:
+                            <div className={styles.toggleSwitch} style={{ position: 'relative', display: 'inline-block', margin: '0 8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={debugBeatEnabled}
+                                    onChange={(e) => handleDebugBeatToggle(e.target.checked)}
+                                    className={styles.toggleInput}
+                                />
+                                <span className={styles.toggleSlider}></span>
+                            </div>
+                            <span className={styles.toggleHint} style={{ fontSize: '0.65rem', opacity: 0.9, fontWeight: 'bold', color: debugBeatEnabled ? '#FF0000' : '#666' }}>
+                                {debugBeatEnabled ? 'ON - FLASHING ON BEATS' : 'OFF'}
+                            </span>
+                        </label>
+                        <span style={{ fontSize: '0.65rem', color: '#888', marginTop: '4px' }}>
+                            When enabled, screen flashes a random color on each detected beat
+                        </span>
+                    </div>
+                </div>
+
+                {/* DISABLED: Adaptive Mode UI - keeping code for future use
                 <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
                         <label className={styles.switchLabel} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
@@ -409,6 +445,7 @@ const AudioShaderControls = ({
                         </div>
                     </div>
                 )}
+                */}
 
                 {/* Band Response Multipliers - like afk-ai */}
                 <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px dashed #444' }}>

@@ -288,26 +288,35 @@ class AdaptiveAudioNormalizer {
 
         let transientStrength = 0;
 
-        if (lowRolling.length >= 10) {
+        if (lowRolling.length >= 5) {  // Reduced from 10 to 5 for faster response
             // Check each band for transients
             const bands = ['low', 'mid', 'high'];
             for (const band of bands) {
                 const window = this.rollingWindow[band];
-                if (window.length < 10) continue;
+                if (window.length < 5) continue;  // Reduced from 10 to 5
 
-                // Get recent average (last ~100ms worth, about 8-9 samples)
-                const recentCount = Math.min(9, window.length);
-                const recentSum = window.slice(-recentCount).reduce((a, b) => a + b, 0);
-                const recentAvg = recentSum / recentCount;
+                // Get recent average (last ~50ms worth, about 4-5 samples)
+                const recentCount = Math.min(5, window.length - 1);  // Reduced from 9, exclude current
+                if (recentCount < 2) continue;
+
+                // Use all values EXCEPT the current one for the average
+                const recentValues = window.slice(-recentCount - 1, -1);
+                const recentSum = recentValues.reduce((a, b) => a + b, 0);
+                const recentAvg = recentSum / recentValues.length;
 
                 // Current value vs recent average
                 const current = window[window.length - 1];
                 if (recentAvg > 0.0001) {
                     const ratio = current / recentAvg;
-                    // If current value is significantly higher than recent average, it's a transient
-                    if (ratio > 1.5) {
-                        const bandTransient = Math.min(1, (ratio - 1.5) / 1.5);
+                    // MUCH lower threshold: 15% above average triggers transient (was 50%)
+                    if (ratio > 1.15) {
+                        // Scale: 1.15 = 0, 1.5 = ~0.5, 2.0 = 1.0
+                        const bandTransient = Math.min(1, (ratio - 1.15) / 0.85);
                         transientStrength = Math.max(transientStrength, bandTransient);
+                        // Debug log transients when detected
+                        if (bandTransient > 0.1) {
+                            console.log(`[TRANSIENT] ${band}: ratio=${ratio.toFixed(2)}, strength=${bandTransient.toFixed(2)}, current=${current.toFixed(4)}, avg=${recentAvg.toFixed(4)}`);
+                        }
                     }
                 }
             }

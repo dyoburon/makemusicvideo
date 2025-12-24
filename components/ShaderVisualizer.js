@@ -377,7 +377,31 @@ const ShaderVisualizer = ({
 
     }, [shaderSrc]); // Only recreate shader when source changes
 
+    // Store audio state in refs to avoid re-triggering the animation loop
+    const audioAnalysisRef = useRef(audioAnalysis);
+    const audioStateRef = useRef(audioState);
+    const audioManagerStateRef = useRef(audioManagerState);
+    const onUpdateUniformsRef = useRef(onUpdateUniforms);
+
+    // Update refs when props change (without triggering animation restart)
+    useEffect(() => {
+        audioAnalysisRef.current = audioAnalysis;
+    }, [audioAnalysis]);
+
+    useEffect(() => {
+        audioStateRef.current = audioState;
+    }, [audioState]);
+
+    useEffect(() => {
+        audioManagerStateRef.current = audioManagerState;
+    }, [audioManagerState]);
+
+    useEffect(() => {
+        onUpdateUniformsRef.current = onUpdateUniforms;
+    }, [onUpdateUniforms]);
+
     // Combined animation loop for both shader animation and audio processing
+    // IMPORTANT: This effect should only restart when resolution or shader changes, NOT on audio updates
     useEffect(() => {
         console.log('[SHADER ANIM DEBUG] Animation loop effect triggered');
         const canvas = canvasRef.current;
@@ -426,17 +450,22 @@ const ShaderVisualizer = ({
             const frameStartTime = performance.now();
 
             // Create the audio state, preferring props if provided, otherwise using the manager state
+            // Use refs to get the latest values without triggering effect restarts
+            const currentAudioAnalysis = audioAnalysisRef.current;
+            const currentAudioState = audioStateRef.current;
+            const currentManagerState = audioManagerStateRef.current;
+
             const audioStateForShader = {
-                analysis: audioAnalysis ?? audioManagerState?.audioAnalysis,
-                currentTime: audioState?.currentTime ?? audioManagerState?.currentTime ?? 0,
-                isPlaying: audioState?.isPlaying ?? audioManagerState?.isPlaying ?? false
+                analysis: currentAudioAnalysis ?? currentManagerState?.audioAnalysis,
+                currentTime: currentAudioState?.currentTime ?? currentManagerState?.currentTime ?? 0,
+                isPlaying: currentAudioState?.isPlaying ?? currentManagerState?.isPlaying ?? false
             };
 
             // Add detailed logging for audio debug (only every 60 frames to avoid spam)
             if (currentFrameCount % 60 === 0) {
                 console.log(`[SHADER VIZ DEBUG] Frame ${currentFrameCount}:`);
-                console.log(`  - Audio props provided: analysis=${!!audioAnalysis}, state=${!!audioState}`);
-                console.log(`  - Manager state: analysis=${!!audioManagerState?.audioAnalysis}, isPlaying=${audioManagerState?.isPlaying}`);
+                console.log(`  - Audio props provided: analysis=${!!currentAudioAnalysis}, state=${!!currentAudioState}`);
+                console.log(`  - Manager state: analysis=${!!currentManagerState?.audioAnalysis}, isPlaying=${currentManagerState?.isPlaying}`);
                 console.log(`  - Final audio state: analysis=${!!audioStateForShader.analysis}, isPlaying=${audioStateForShader.isPlaying}, time=${audioStateForShader.currentTime?.toFixed(2)}`);
                 if (audioStateForShader.analysis) {
                     console.log(`  - Timeline entries: ${audioStateForShader.analysis.timeline?.length || 0}`);
@@ -452,7 +481,7 @@ const ShaderVisualizer = ({
                 startTime: startTimeRef.current,
                 audioState: audioStateForShader,
                 frameCount: currentFrameCount,
-                onUpdateUniforms: onUpdateUniforms
+                onUpdateUniforms: onUpdateUniformsRef.current
             });
 
             // Update frame counter reference
@@ -495,7 +524,9 @@ const ShaderVisualizer = ({
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [resolution, audioAnalysis, audioState, audioManagerState, onUpdateUniforms]);
+    // IMPORTANT: Only restart animation when resolution changes
+    // Audio state is read from refs on each frame, so no need to restart the loop
+    }, [resolution]);
 
     return (
         <div

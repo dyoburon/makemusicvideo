@@ -44,6 +44,10 @@ uniform vec3 uColor3;
 uniform vec3 uFogColor;
 uniform vec3 uGlowColor;
 
+// Debug beat flash uniforms
+uniform float uDebugBeatFlash;   // 0-1 flash intensity (1 = full flash, decays quickly)
+uniform vec3 uDebugBeatColor;    // Color to flash on beat
+
 out vec4 fragColor; // GLSL ES 3.0 output
 
 // Rotation matrix for 2D
@@ -324,7 +328,15 @@ void main() {
     col += audioReactiveGlow * 3.0; // CRANKED from 2.0 to 3.0
 
     // Final color output with energy-based saturation boost - CRANKED from 0.05 to 0.2
-    fragColor = vec4(col * (1.0 + uEnergy * uEnergyColorEffect * 0.2), 1.0);
+    vec3 finalCol = col * (1.0 + uEnergy * uEnergyColorEffect * 0.2);
+
+    // DEBUG BEAT FLASH: When enabled, flash entire screen to debug color on beat
+    // This makes it super obvious when beats are being detected
+    if (uDebugBeatFlash > 0.01) {
+        finalCol = mix(finalCol, uDebugBeatColor, uDebugBeatFlash);
+    }
+
+    fragColor = vec4(finalCol, 1.0);
 }
 `;
 
