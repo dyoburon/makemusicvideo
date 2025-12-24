@@ -44,10 +44,6 @@ uniform vec3 uColor3;
 uniform vec3 uFogColor;
 uniform vec3 uGlowColor;
 
-// Debug beat flash uniforms
-uniform float uDebugBeatFlash;   // 0-1 flash intensity (1 = full flash, decays quickly)
-uniform vec3 uDebugBeatColor;    // Color to flash on beat
-
 out vec4 fragColor; // GLSL ES 3.0 output
 
 // Rotation matrix for 2D
@@ -84,49 +80,40 @@ vec3 randomColor(float seed) {
 float prm1 = 0.;
 vec2 bsMo = vec2(0);
 
-// Displacement for tunnel swirl - with CRANKED UP audio reactivity
+// Displacement for tunnel swirl - SIMPLIFIED (no audio modulation)
 vec2 disp(float t) {
-    // Camera speed influences tunnel expansion - CRANKED from 0.10 to 0.5
-    float expansion = 1.5 * (1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.5);
+    // Fixed expansion - no audio modulation to prevent position chaos
+    float expansion = 1.5;
 
-    // Low frequency influences the tunnel width - bass makes it expand BIG - CRANKED from 0.2 to 0.8
-    expansion *= 1.0 + uLowEnergy * uEnergyCameraEffect * 0.8;
-
-    // High frequency influences tunnel asymmetry - CRANKED from 0.1 to 0.4
-    float asymmetry = uHighEnergy * uEnergyCameraEffect * 0.4;
-
-    // Faster camera motion creates more dynamic swirls
-    float swirl = uCameraSpeed * 0.15;
     return vec2(
-        sin(t * 0.25) * expansion + cos(t * 0.3) * asymmetry,
-        cos(t * 0.2) * expansion + sin(t * 0.4) * asymmetry
+        sin(t * 0.25) * expansion,
+        cos(t * 0.2) * expansion
     );
 }
 
-// Noise-based map function with CRANKED UP audio reactivity
+// Noise-based map function - SIMPLIFIED (no audio modulation for position)
 vec2 map(vec3 p) {
     vec3 p2 = p;
     p2.xy -= disp(p.z).xy; // Displace for tunnel effect
 
-    // Rotation speed influenced by camera speed and high frequency energy - CRANKED from 0.2 to 0.6
+    // Fixed rotation speed - no audio modulation
     float rotationSpeed = sin(p.z + uTime) * 0.15 + uTime * 0.1 * min(uCameraSpeed, 2.0);
-    rotationSpeed *= 1.0 + uHighEnergy * uEnergyCameraEffect * 0.6; // High frequencies make it rotate faster
     p.xy *= rot(rotationSpeed);
 
     float cl = mag2(p2.xy);
     float d = 0.;
 
-    // No scale change for pattern - removed to reduce jerkiness
     float z = 1.;
     float trk = 1.;
 
-    // Amplitude boost controlled by transients and energy - CRANKED from 0.10/0.05 to 0.4/0.2
-    float dspAmp = 0.15 * (1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.4 + uEnergy * uEnergyCameraEffect * 0.2);
+    // Fixed displacement amplitude - no audio modulation
+    float dspAmp = 0.15;
+
+    // Fixed noise scale - no audio modulation
+    float noiseScale = 0.8;
 
     // Fewer iterations for simpler, retro-style noise
     for (int i = 0; i < 2; i++) {
-        // Make the noise pattern react to audio - CRANKED from 0.05 to 0.2
-        float noiseScale = 0.8 * (1.0 + uEnergy * uEnergyCameraEffect * 0.2);
         p += sin(p.zxy * noiseScale * trk + uTime * trk * 0.7) * dspAmp;
         d -= abs(dot(cos(p), sin(p.yzx)) * z);
         z *= 0.6;
@@ -134,24 +121,15 @@ vec2 map(vec3 p) {
         p = p * m3;
     }
 
-    // Combined transient and low frequency effect for tunnel shape - CRANKED from 0.10/0.05 to 0.4/0.2
-    float audioShrink = 1.0 - (uTransients * uTransientIntensity * uTransientCameraEffect * 0.4 + uLowEnergy * uEnergyCameraEffect * 0.2);
-
-    // NEW: Add breathing effect to the tunnel hole size
-    // Create a slow oscillation for the tunnel hole size based on time
-    // Using uniform variables instead of hardcoded values
-    float breathingPhase = sin(uTime * uBreathingRate);
-    float breathingFactor = 1.0 + uBreathingAmount * (50.0 + 50.0 * breathingPhase);
-
     d = abs(d + prm1 * 2.) + prm1 * 0.2 - 2. + bsMo.y;
 
-    // Apply both audio reactivity and breathing effect to the tunnel size
-    d *= audioShrink * breathingFactor;
+    // No expansion/breathing - fixed tunnel size
+    // Audio reactivity is now ONLY in colors/glow, not position
 
     return vec2(d + cl * 0.15 + 0.3, cl);
 }
 
-// Render function with CRANKED UP audio reactivity
+// Render function - colors/glow react to audio, position stays fixed
 vec4 render(vec3 ro, vec3 rd, float time) {
     vec4 rez = vec4(0);
     const float ldst = 6.;
@@ -159,11 +137,11 @@ vec4 render(vec3 ro, vec3 rd, float time) {
     float t = 1.;
     float fogT = 0.;
 
-    // Tunnel speed variation with combined audio inputs - CRANKED from 0.10/0.05 to 0.4/0.2
-    float tunnelSpeedFactor = 1.0 + uTransients * uTransientIntensity * uTransientCameraEffect * 0.4 + uEnergy * uEnergyCameraEffect * 0.2;
+    // Fixed tunnel speed - no audio modulation (prevents position chaos)
+    float tunnelSpeedFactor = 1.0;
 
-    // Motion blur effect increases with speed and high frequencies
-    float motionBlurFactor = 0.0; // Set to 0 to remove motion blur
+    // Motion blur disabled
+    float motionBlurFactor = 0.0;
 
     for (int i = 0; i < 500; i++) {
         if (rez.a > 0.99) break;
@@ -212,14 +190,14 @@ vec4 render(vec3 ro, vec3 rd, float time) {
             // Combined audio reactivity for brightness - CRANKED from 0.3/0.1/0.1 to 0.8/0.5/0.4
             col.rgb *= 1.0 + uTransients * uTransientIntensity * uTransientColorEffect * 0.8 + uLowEnergy * uEnergyColorEffect * 0.5 + uHighEnergy * uEnergyColorEffect * 0.4;
 
-            // Add subtle glow with speed and energy - CRANKED from 0.1 to 0.3
-            col.rgb *= 1.0 + clamp(uCameraSpeed - 1.0, 0.0, 1.0) * 0.115 * (1.0 + uEnergy * uEnergyCameraEffect * 0.3);
+            // Add subtle glow with speed (ColorEffect for visual, not position)
+            col.rgb *= 1.0 + clamp(uCameraSpeed - 1.0, 0.0, 1.0) * 0.115 * (1.0 + uEnergy * uEnergyColorEffect * 0.3);
         }
 
-        // Fog influenced by audio - CRANKED from 0.05 to 0.2
-        float baseFogStrength = 0.15 + motionBlurFactor;
-        float audioFogStrength = uHighEnergy * uEnergyCameraEffect * 0.2;
-        float fogStrength = (baseFogStrength + audioFogStrength) / 5.0; // Reduced fog strength
+        // Fog influenced by audio (uses ColorEffect - visual only, not position)
+        float baseFogStrength = 0.15;
+        float audioFogStrength = uHighEnergy * uEnergyColorEffect * 0.2;
+        float fogStrength = (baseFogStrength + audioFogStrength) / 5.0;
         float fogC = exp(t * fogStrength - 2.);
 
         // Dynamic fog color
@@ -241,10 +219,8 @@ vec4 render(vec3 ro, vec3 rd, float time) {
         fogT = fogC;
         rez = rez + col * (1. - rez.a);
 
-        // Step size influenced by camera speed and energy - CRANKED from 0.05 to 0.15
-        float speedAdjustedStep = clamp(0.4 - dn * dn * 0.06, 0.1, 0.35) *
-                                 (1.0 + motionBlurFactor) *
-                                 (1.0 + uEnergy * uEnergyCameraEffect * 0.15); // Overall energy makes rays go further
+        // Fixed step size - no audio modulation (prevents position chaos)
+        float speedAdjustedStep = clamp(0.4 - dn * dn * 0.06, 0.1, 0.35);
         t += speedAdjustedStep;
     }
     return clamp(rez, 0., 1.);
@@ -267,22 +243,20 @@ void main() {
     vec2 p = (vTexCoord * 2.0 - 1.0);
     p.x *= uResolution.x / uResolution.y; // Aspect ratio correction
 
-    // Camera movement influenced by audio - CRANKED from 0.1 to 0.4
+    // Fixed gentle camera sway - no audio modulation (prevents position chaos)
     bsMo = vec2(0.0, 0.0);
-    // Low frequencies create horizontal shifts - bass makes camera sway
-    bsMo.x += sin(uTime * 0.3) * 0.1 * (1.0 + uLowEnergy * uEnergyCameraEffect * 0.4);
-    // High frequencies create vertical shifts - CRANKED from 0.05 to 0.2
-    bsMo.y += cos(uTime * 0.4) * 0.05 * (1.0 + uHighEnergy * uEnergyCameraEffect * 0.2);
+    bsMo.x += sin(uTime * 0.3) * 0.1;  // Fixed horizontal sway
+    bsMo.y += cos(uTime * 0.4) * 0.05; // Fixed vertical sway
 
-    // Time flow affected by energy - CRANKED from 0.1 to 0.3
-    float timeScale = 1.0 + uEnergy * uEnergyCameraEffect * 0.3;
-    float time = uTime * uCameraSpeed * timeScale; // Modified to use energy and camera speed
+    // Clean time calculation - ONLY uCameraSpeed controls forward motion
+    // Negated for forward direction through tunnel
+    float time = -uTime * uCameraSpeed;
 
-    // Position with audio-reactive movement
+    // Position - fixed forward motion
     vec3 ro = vec3(0, 0, time);
 
-    // Displacement amplitude influenced by low frequency - CRANKED from 0.1 to 0.4
-    float dspAmp = 0.9 * (1.0 + uLowEnergy * uEnergyCameraEffect * 0.4);
+    // Fixed displacement amplitude - no audio modulation
+    float dspAmp = 0.9;
     ro.xy += disp(ro.z) * dspAmp;
 
     float tgtDst = 3.;
@@ -296,13 +270,13 @@ void main() {
     rightdir = normalize(cross(updir, target));
     vec3 rd = normalize((p.x * rightdir + p.y * updir) * 1.0 - target);
 
-    // Rotation influenced by camera speed and high frequencies - CRANKED from 0.2 to 0.5
+    // Fixed rotation - no audio modulation (prevents position chaos)
     float rotAmount = -disp(time + 3.).x * 0.15 + bsMo.x;
-    rotAmount *= mix(1.0, 1.5, clamp(uCameraSpeed - 1.0, 0.0, 1.0) * (1.0 + uHighEnergy * uEnergyCameraEffect * 0.5));
+    rotAmount *= mix(1.0, 1.5, clamp(uCameraSpeed - 1.0, 0.0, 1.0));
     rd.xy *= rot(rotAmount);
 
-    // Parameter modulation with audio variance - CRANKED from 0.1 to 0.3
-    prm1 = smoothstep(-0.5, 0.5, sin(uTime * 0.4 * (1.0 + uEnergy * uEnergyCameraEffect * 0.3)));
+    // Fixed parameter modulation - no audio
+    prm1 = smoothstep(-0.5, 0.5, sin(uTime * 0.4));
     vec4 scn = render(ro, rd, time);
 
     vec3 col = scn.rgb;
@@ -329,12 +303,6 @@ void main() {
 
     // Final color output with energy-based saturation boost - CRANKED from 0.05 to 0.2
     vec3 finalCol = col * (1.0 + uEnergy * uEnergyColorEffect * 0.2);
-
-    // DEBUG BEAT FLASH: When enabled, flash entire screen to debug color on beat
-    // This makes it super obvious when beats are being detected
-    if (uDebugBeatFlash > 0.01) {
-        finalCol = mix(finalCol, uDebugBeatColor, uDebugBeatFlash);
-    }
 
     fragColor = vec4(finalCol, 1.0);
 }

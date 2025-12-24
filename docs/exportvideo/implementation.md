@@ -4,6 +4,54 @@
 
 This document outlines the implementation strategy for exporting shader-based audio visualizations as video files. Currently, the makemusicvideo project only supports real-time visualization with no export capability.
 
+**Related Documents:**
+- [Client vs Server Comparison](./client-vs-server.md) - Cost and timing analysis
+
+---
+
+## Design Principles
+
+### Scoped & Isolated
+
+All export code will be **completely isolated** from existing visualization code:
+
+```
+Existing Code (UNTOUCHED)              Export Module (NEW)
+─────────────────────────              ─────────────────────
+ShaderVisualizer.js                    utils/export/ExportRenderer.js
+  └─ canvas            ──────────────▶   └─ borrows canvas ref
+  └─ gl context        ──────────────▶   └─ borrows gl context
+  └─ shader program    ──────────────▶   └─ borrows program ref
+  └─ uniformLocations  ──────────────▶   └─ borrows locations
+                                         └─ has OWN render loop
+
+ShaderManager.js
+  └─ processAudioDataForShader() ────▶ calls with arbitrary time
+
+AudioAnalysisManager.js
+  └─ audioAnalysis     ──────────────▶ reads timeline data
+```
+
+**Key principle:** Export module only **reads from** and **calls into** existing code. No modifications to ShaderVisualizer, ShaderManager, etc.
+
+### Single Touch Point
+
+The only addition to existing code is a **read-only getter**:
+
+```javascript
+// Add to ShaderVisualizer.js (or expose via React ref)
+getExportContext() {
+    return {
+        canvas: this.canvasRef.current,
+        gl: this.gl,
+        shaderProgram: this.shaderProgram,
+        uniformLocations: this.uniformLocations
+    };
+}
+```
+
+Everything else lives in `utils/export/`.
+
 ---
 
 ## Current Architecture

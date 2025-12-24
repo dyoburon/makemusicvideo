@@ -72,15 +72,15 @@ export const smoothedValues = {
         g: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
         b: { current: 0.2, target: 0.2, lastUpdateTime: 0 }
     },
-    // Tunnel breathing effect parameters
+    // Tunnel breathing effect parameters - DISABLED to prevent expansion/contraction
     breathingRate: {
-        current: 2.0, // Reverted from 0.75
-        target: 2.0,  // Reverted from 0.75
+        current: 0,
+        target: 0,
         lastUpdateTime: 0
     },
     breathingAmount: {
-        current: 6.0, // Reverted from 15.0
-        target: 6.0,  // Reverted from 15.0
+        current: 0,  // DISABLED - causes backward feeling
+        target: 0,
         lastUpdateTime: 0
     },
     cameraSpeed: {
@@ -99,10 +99,11 @@ export const smoothedValues = {
         target: 0.5,
         lastUpdateTime: 0
     },
-    // Add new audio effect intensity controls
+    // Audio effect intensity controls
+    // Camera effects set to 0 to prevent position chaos - only ColorEffects are active
     energyCameraEffect: {
-        current: 1.0,
-        target: 1.0,
+        current: 0,  // DISABLED - causes position chaos
+        target: 0,
         lastUpdateTime: 0
     },
     energyColorEffect: {
@@ -111,8 +112,8 @@ export const smoothedValues = {
         lastUpdateTime: 0
     },
     transientCameraEffect: {
-        current: 1.0,
-        target: 1.0,
+        current: 0,  // DISABLED - causes position chaos
+        target: 0,
         lastUpdateTime: 0
     },
     transientColorEffect: {
@@ -201,6 +202,12 @@ export const smoothedValues = {
     },
     debugBeatEnabled: {
         current: 0,  // 0 = disabled, 1 = enabled
+        target: 0,
+        lastUpdateTime: 0
+    },
+    // Toggle to disable camera movement (for testing colors only)
+    cameraMovementEnabled: {
+        current: 0,  // 0 = disabled (fixed speed), 1 = enabled (audio reactive)
         target: 0,
         lastUpdateTime: 0
     }
@@ -333,104 +340,39 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
             console.log(`[SHADER UPDATE] Audio (with response) - E:${audioDrivenEnergy.toFixed(2)}, L:${audioDrivenLowEnergy.toFixed(2)}, M:${audioDrivenMidEnergy.toFixed(2)}, H:${audioDrivenHighEnergy.toFixed(2)}, T:${audioDrivenTransients.toFixed(2)}`);
         }
 
-        // --- Debug Beat Flash Logic ---
-        // When debug is enabled and a beat is detected, flash a new random color
-        if (smoothedValues.debugBeatEnabled.current > 0.5 && liveRawUniforms.transients > TRANSIENT_THRESHOLD) {
-            // Set flash to full intensity
-            smoothedValues.debugBeatFlash.current = 1.0;
-            smoothedValues.debugBeatFlash.target = 1.0;
-            // Pick a new random saturated color
-            const hue = Math.random();
-            // Convert HSV to RGB (S=1, V=1 for vibrant colors)
-            const h = hue * 6;
-            const i = Math.floor(h);
-            const f = h - i;
-            let r, g, b;
-            switch (i % 6) {
-                case 0: r = 1; g = f; b = 0; break;
-                case 1: r = 1 - f; g = 1; b = 0; break;
-                case 2: r = 0; g = 1; b = f; break;
-                case 3: r = 0; g = 1 - f; b = 1; break;
-                case 4: r = f; g = 0; b = 1; break;
-                case 5: r = 1; g = 0; b = 1 - f; break;
-            }
-            smoothedValues.debugBeatColorR.current = r;
-            smoothedValues.debugBeatColorG.current = g;
-            smoothedValues.debugBeatColorB.current = b;
-            console.log(`[DEBUG BEAT] Flash! Color: rgb(${Math.round(r*255)}, ${Math.round(g*255)}, ${Math.round(b*255)}) Transient: ${liveRawUniforms.transients.toFixed(3)}`);
-        }
-
-        // --- Transient-based Color Change Logic (only active if playing) ---
+        // --- Transient-based Beat Effects (only active if playing) ---
         const newTransientDetected = liveRawUniforms.transients > TRANSIENT_THRESHOLD;
         const sufficientTimePassed = (now - lastTransientColorChangeTime) > MIN_COLOR_CHANGE_INTERVAL;
 
         if (newTransientDetected && sufficientTimePassed) {
-            // DEBUG MODE: EXTREMELY DRASTIC neon color changes
-            // Generate completely random NEON colors - super saturated and bright
-            const neonColors = [
-                { r: 1.0, g: 0.0, b: 0.0 },   // Pure Red
-                { r: 0.0, g: 1.0, b: 0.0 },   // Pure Green
-                { r: 0.0, g: 0.0, b: 1.0 },   // Pure Blue
-                { r: 1.0, g: 1.0, b: 0.0 },   // Yellow
-                { r: 1.0, g: 0.0, b: 1.0 },   // Magenta
-                { r: 0.0, g: 1.0, b: 1.0 },   // Cyan
-                { r: 1.0, g: 0.5, b: 0.0 },   // Orange
-                { r: 0.5, g: 0.0, b: 1.0 },   // Purple
-                { r: 0.0, g: 1.0, b: 0.5 },   // Spring Green
-                { r: 1.0, g: 0.0, b: 0.5 },   // Hot Pink
-            ];
+            // ============================================
+            // SIMPLIFIED BEAT EFFECTS - Only 4 things:
+            // 1. Camera Speed (forward motion) - can be disabled
+            // 2. Glow Intensity (via colorEffect)
+            // 3. Color Brightness (via colorEffect + colorIntensity)
+            // 4. Fog responds to same colorEffect
+            // ============================================
 
-            // Pick 3 different random neon colors
-            const idx1 = Math.floor(Math.random() * neonColors.length);
-            let idx2 = Math.floor(Math.random() * neonColors.length);
-            let idx3 = Math.floor(Math.random() * neonColors.length);
-            while (idx2 === idx1) idx2 = Math.floor(Math.random() * neonColors.length);
-            while (idx3 === idx1 || idx3 === idx2) idx3 = Math.floor(Math.random() * neonColors.length);
+            // 1. CAMERA SPEED - Forward zoom on beat (only if enabled)
+            let speedBoost = 1.0;
+            if (smoothedValues.cameraMovementEnabled.current > 0.5) {
+                speedBoost = 1.25 + Math.random() * 0.5; // 1.25x to 1.75x
+                smoothedValues.cameraSpeed.current = speedBoost;
+                smoothedValues.cameraSpeed.target = 1.0;
+            }
 
-            const newColor1 = neonColors[idx1];
-            const newColor2 = neonColors[idx2];
-            const newColor3 = neonColors[idx3];
+            // 2 & 3. COLOR EFFECTS - Glow + Brightness (no position chaos)
+            smoothedValues.transientColorEffect.current = 1.5;
+            smoothedValues.transientColorEffect.target = 1.0;
+            smoothedValues.energyColorEffect.current = 1.5;
+            smoothedValues.energyColorEffect.target = 1.0;
 
-            // Set BOTH current AND target to skip smoothing - INSTANT change
-            smoothedValues.color1.r.current = newColor1.r;
-            smoothedValues.color1.r.target = newColor1.r;
-            smoothedValues.color1.g.current = newColor1.g;
-            smoothedValues.color1.g.target = newColor1.g;
-            smoothedValues.color1.b.current = newColor1.b;
-            smoothedValues.color1.b.target = newColor1.b;
+            // 4. COLOR INTENSITY - Extra brightness punch
+            const colorBoost = 1.2 + Math.random() * 0.3; // 1.2x to 1.5x
+            smoothedValues.colorIntensity.current = colorBoost;
+            smoothedValues.colorIntensity.target = 1.0;
 
-            smoothedValues.color2.r.current = newColor2.r;
-            smoothedValues.color2.r.target = newColor2.r;
-            smoothedValues.color2.g.current = newColor2.g;
-            smoothedValues.color2.g.target = newColor2.g;
-            smoothedValues.color2.b.current = newColor2.b;
-            smoothedValues.color2.b.target = newColor2.b;
-
-            smoothedValues.color3.r.current = newColor3.r;
-            smoothedValues.color3.r.target = newColor3.r;
-            smoothedValues.color3.g.current = newColor3.g;
-            smoothedValues.color3.g.target = newColor3.g;
-            smoothedValues.color3.b.current = newColor3.b;
-            smoothedValues.color3.b.target = newColor3.b;
-
-            // DRASTIC fog and glow changes too
-            const fogIdx = Math.floor(Math.random() * neonColors.length);
-            const glowIdx = Math.floor(Math.random() * neonColors.length);
-            smoothedValues.fogColor.r.current = neonColors[fogIdx].r * 0.3;
-            smoothedValues.fogColor.r.target = neonColors[fogIdx].r * 0.3;
-            smoothedValues.fogColor.g.current = neonColors[fogIdx].g * 0.3;
-            smoothedValues.fogColor.g.target = neonColors[fogIdx].g * 0.3;
-            smoothedValues.fogColor.b.current = neonColors[fogIdx].b * 0.3;
-            smoothedValues.fogColor.b.target = neonColors[fogIdx].b * 0.3;
-
-            smoothedValues.glowColor.r.current = neonColors[glowIdx].r * 0.5;
-            smoothedValues.glowColor.r.target = neonColors[glowIdx].r * 0.5;
-            smoothedValues.glowColor.g.current = neonColors[glowIdx].g * 0.5;
-            smoothedValues.glowColor.g.target = neonColors[glowIdx].g * 0.5;
-            smoothedValues.glowColor.b.current = neonColors[glowIdx].b * 0.5;
-            smoothedValues.glowColor.b.target = neonColors[glowIdx].b * 0.5;
-
-            console.log(`[COLOR CHANGE] NEON! C1:${['Red','Green','Blue','Yellow','Magenta','Cyan','Orange','Purple','SpringGreen','HotPink'][idx1]} C2:${['Red','Green','Blue','Yellow','Magenta','Cyan','Orange','Purple','SpringGreen','HotPink'][idx2]} C3:${['Red','Green','Blue','Yellow','Magenta','Cyan','Orange','Purple','SpringGreen','HotPink'][idx3]}`);
+            console.log(`[BEAT] Speed:${speedBoost.toFixed(2)}x | Color:${colorBoost.toFixed(2)}x | CamEnabled:${smoothedValues.cameraMovementEnabled.current > 0.5}`);
 
             lastTransientColorChangeTime = now;
         }
@@ -507,14 +449,6 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
     const activeSmoothingDuration = getSmoothComponentValue(smoothedValues.smoothingDuration, smoothedValues.smoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
     const activeColorSmoothingDuration = getSmoothComponentValue(smoothedValues.colorSmoothingDuration, smoothedValues.colorSmoothingDuration.target, now, DEFAULT_SMOOTHING_DURATION);
 
-    // Decay the debug beat flash quickly (over ~100ms)
-    if (smoothedValues.debugBeatFlash.current > 0) {
-        smoothedValues.debugBeatFlash.current *= 0.85; // Fast decay
-        if (smoothedValues.debugBeatFlash.current < 0.01) {
-            smoothedValues.debugBeatFlash.current = 0;
-        }
-    }
-
     const finalUniforms = {
         energy: getSmoothValue('energy', audioDrivenEnergy, now), // 'energy' etc. are keys in smoothedValues for current/target state
         lowEnergy: getSmoothValue('lowEnergy', audioDrivenLowEnergy, now),
@@ -529,7 +463,10 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
         trebleResponse: getSmoothComponentValue(smoothedValues.trebleResponse, smoothedValues.trebleResponse.target, now, activeSmoothingDuration),
 
         // Control-driven parameters
-        cameraSpeed: getSmoothComponentValue(smoothedValues.cameraSpeed, finalTargetSpeedForSmoothing, now, activeCameraSpeedSmoothingDuration),
+        // Camera speed: fixed at 1.0 when movement disabled, otherwise audio-reactive with floor of 1.0
+        cameraSpeed: smoothedValues.cameraMovementEnabled.current > 0.5
+            ? Math.max(1.0, getSmoothComponentValue(smoothedValues.cameraSpeed, finalTargetSpeedForSmoothing, now, activeCameraSpeedSmoothingDuration))
+            : 1.0,
         transientEffect: getSmoothComponentValue(smoothedValues.transientEffect, smoothedValues.transientEffect.target, now, activeSmoothingDuration),
         colorIntensity: getSmoothComponentValue(smoothedValues.colorIntensity, smoothedValues.colorIntensity.target, now, activeSmoothingDuration),
         energyCameraEffect: getSmoothComponentValue(smoothedValues.energyCameraEffect, smoothedValues.energyCameraEffect.target, now, activeSmoothingDuration),
@@ -574,13 +511,6 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
             b: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.b, smoothedValues.glowColor.b.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5)
         },
 
-        // Debug beat flash uniforms
-        debugBeatFlash: smoothedValues.debugBeatFlash.current,
-        debugBeatColor: {
-            r: smoothedValues.debugBeatColorR.current,
-            g: smoothedValues.debugBeatColorG.current,
-            b: smoothedValues.debugBeatColorB.current
-        }
     };
 
     // Debug logging
@@ -716,12 +646,6 @@ export function updateFrame({
             if (audioUniforms.uColor3) shaderProgram.setUniform3f('uColor3', audioUniforms.uColor3.r, audioUniforms.uColor3.g, audioUniforms.uColor3.b);
             if (audioUniforms.uFogColor) shaderProgram.setUniform3f('uFogColor', audioUniforms.uFogColor.r, audioUniforms.uFogColor.g, audioUniforms.uFogColor.b);
             if (audioUniforms.uGlowColor) shaderProgram.setUniform3f('uGlowColor', audioUniforms.uGlowColor.r, audioUniforms.uGlowColor.g, audioUniforms.uGlowColor.b);
-
-            // Debug beat flash uniforms
-            shaderProgram.setUniform1f('uDebugBeatFlash', audioUniforms.debugBeatFlash || 0);
-            if (audioUniforms.debugBeatColor) {
-                shaderProgram.setUniform3f('uDebugBeatColor', audioUniforms.debugBeatColor.r, audioUniforms.debugBeatColor.g, audioUniforms.debugBeatColor.b);
-            }
         }
         // ... (rest of draw logic)
         // Bind vertex buffer and draw

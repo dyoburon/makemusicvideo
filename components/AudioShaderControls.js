@@ -75,6 +75,9 @@ const AudioShaderControls = ({
     // Debug beat flash toggle
     const [debugBeatEnabled, setDebugBeatEnabled] = useState(false);
 
+    // Camera movement toggle (for testing colors without movement)
+    const [cameraMovementEnabled, setCameraMovementEnabled] = useState(false);
+
     // Helper to convert RGB [0-1] to hex color string for input elements
     const rgbToHex = useCallback((r, g, b) => {
         const toHex = (value) => {
@@ -182,6 +185,14 @@ const AudioShaderControls = ({
         smoothedValues.debugBeatEnabled.current = enabled ? 1 : 0;
         smoothedValues.debugBeatEnabled.target = enabled ? 1 : 0;
         console.log(`[DEBUG BEAT] ${enabled ? 'ENABLED' : 'DISABLED'} - Screen will flash on each beat`);
+    };
+
+    // Handle camera movement toggle
+    const handleCameraMovementToggle = (enabled) => {
+        setCameraMovementEnabled(enabled);
+        smoothedValues.cameraMovementEnabled.current = enabled ? 1 : 0;
+        smoothedValues.cameraMovementEnabled.target = enabled ? 1 : 0;
+        console.log(`[CAMERA MOVEMENT] ${enabled ? 'ENABLED' : 'DISABLED'} - Camera speed ${enabled ? 'reacts to beats' : 'fixed at 1.0'}`);
     };
 
     // Randomize all colors with one click
@@ -608,6 +619,28 @@ const AudioShaderControls = ({
                 <summary className={styles.customShaderSummary} style={{ fontSize: '0.85rem', padding: '2px 0', color: '#FF00FF', marginBottom: '5px' }}>
                     Motion & Effects
                 </summary>
+
+                {/* Camera Movement Toggle */}
+                <div className={styles.controlsRow} style={{ marginBottom: '12px', padding: '8px', backgroundColor: cameraMovementEnabled ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 100, 0, 0.1)', borderRadius: '4px', border: cameraMovementEnabled ? '1px solid #00FF00' : '1px dashed #FF6600' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.switchLabel} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+                            Camera Movement:
+                            <div className={styles.toggleSwitch} style={{ position: 'relative', display: 'inline-block', margin: '0 8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={cameraMovementEnabled}
+                                    onChange={(e) => handleCameraMovementToggle(e.target.checked)}
+                                    className={styles.toggleInput}
+                                />
+                                <span className={styles.toggleSlider}></span>
+                            </div>
+                            <span className={styles.toggleHint} style={{ fontSize: '0.65rem', opacity: 0.9, fontWeight: 'bold', color: cameraMovementEnabled ? '#00FF00' : '#FF6600' }}>
+                                {cameraMovementEnabled ? 'ON - Speed reacts to beats' : 'OFF - Fixed speed (colors only)'}
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
                 <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
                     <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
                         <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
