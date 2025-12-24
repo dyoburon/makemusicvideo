@@ -46,31 +46,31 @@ export const smoothedValues = {
         target: 0,
         lastUpdateTime: 0
     },
-    // Add new color states
+    // Color states - initial values match AudioShaderControls defaults
     color1: {
-        r: { current: 0.4, target: 0.4, lastUpdateTime: 0 },
-        g: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
-        b: { current: 0.2, target: 0.2, lastUpdateTime: 0 }
+        r: { current: 0.8, target: 0.8, lastUpdateTime: 0 },
+        g: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
+        b: { current: 0.9, target: 0.9, lastUpdateTime: 0 }
     },
     color2: {
-        r: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
-        g: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
-        b: { current: 0.8, target: 0.8, lastUpdateTime: 0 }
+        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
+        g: { current: 0.6, target: 0.6, lastUpdateTime: 0 },
+        b: { current: 0.9, target: 0.9, lastUpdateTime: 0 }
     },
     color3: {
-        r: { current: 1.0, target: 1.0, lastUpdateTime: 0 },
-        g: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
-        b: { current: 0.8, target: 0.8, lastUpdateTime: 0 }
+        r: { current: 0.9, target: 0.9, lastUpdateTime: 0 },
+        g: { current: 0.5, target: 0.5, lastUpdateTime: 0 },
+        b: { current: 0.1, target: 0.1, lastUpdateTime: 0 }
     },
     fogColor: {
-        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
+        r: { current: 0.15, target: 0.15, lastUpdateTime: 0 },
         g: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
-        b: { current: 0.15, target: 0.15, lastUpdateTime: 0 }
+        b: { current: 0.25, target: 0.25, lastUpdateTime: 0 }
     },
     glowColor: {
-        r: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
-        g: { current: 0.05, target: 0.05, lastUpdateTime: 0 },
-        b: { current: 0.2, target: 0.2, lastUpdateTime: 0 }
+        r: { current: 0.2, target: 0.2, lastUpdateTime: 0 },
+        g: { current: 0.1, target: 0.1, lastUpdateTime: 0 },
+        b: { current: 0.3, target: 0.3, lastUpdateTime: 0 }
     },
     // Tunnel breathing effect parameters - DISABLED to prevent expansion/contraction
     breathingRate: {
@@ -209,6 +209,24 @@ export const smoothedValues = {
     cameraMovementEnabled: {
         current: 0,  // 0 = disabled (fixed speed), 1 = enabled (audio reactive)
         target: 0,
+        lastUpdateTime: 0
+    },
+    // Toggle to disable fog and glow (for testing primary colors only)
+    fogGlowEnabled: {
+        current: 0,  // 0 = disabled (black fog/glow), 1 = enabled
+        target: 0,
+        lastUpdateTime: 0
+    },
+    // Tunnel expansion control (how open/brain-like the tunnel looks)
+    tunnelExpansion: {
+        current: 2.5,  // Higher = more open/brain-like
+        target: 2.5,
+        lastUpdateTime: 0
+    },
+    // Glow intensity multiplier
+    glowIntensity: {
+        current: 1.0,
+        target: 1.0,
         lastUpdateTime: 0
     }
 };
@@ -484,6 +502,12 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
 
         useColorControls: getSmoothComponentValue(smoothedValues.useColorControls, smoothedValues.useColorControls.target, now, activeSmoothingDuration),
 
+        // Tunnel expansion (how open/brain-like it looks)
+        tunnelExpansion: getSmoothComponentValue(smoothedValues.tunnelExpansion, smoothedValues.tunnelExpansion.target, now, activeSmoothingDuration),
+
+        // Glow intensity multiplier
+        glowIntensity: getSmoothComponentValue(smoothedValues.glowIntensity, smoothedValues.glowIntensity.target, now, activeSmoothingDuration),
+
         // Colors (apply colorIntensity)
         uColor1: {
             r: Math.min(1.0, getSmoothComponentValue(smoothedValues.color1.r, smoothedValues.color1.r.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
@@ -500,16 +524,17 @@ export function updateAudioUniforms(audioAnalysis, currentTime, isPlaying, debug
             g: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.g, smoothedValues.color3.g.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
             b: Math.min(1.0, getSmoothComponentValue(smoothedValues.color3.b, smoothedValues.color3.b.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5)
         },
-        uFogColor: { // Fog usually doesn't have intensity applied in the same way
+        // Fog and Glow - disabled (black) when fogGlowEnabled is off
+        uFogColor: smoothedValues.fogGlowEnabled.current > 0.5 ? {
             r: getSmoothComponentValue(smoothedValues.fogColor.r, smoothedValues.fogColor.r.target, now, activeColorSmoothingDuration),
             g: getSmoothComponentValue(smoothedValues.fogColor.g, smoothedValues.fogColor.g.target, now, activeColorSmoothingDuration),
             b: getSmoothComponentValue(smoothedValues.fogColor.b, smoothedValues.fogColor.b.target, now, activeColorSmoothingDuration)
-        },
-        uGlowColor: { // Glow might or might not use colorIntensity
-            r: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.r, smoothedValues.glowColor.r.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
-            g: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.g, smoothedValues.glowColor.g.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5),
-            b: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.b, smoothedValues.glowColor.b.target, now, activeColorSmoothingDuration) * smoothedValues.colorIntensity.current * 1.5)
-        },
+        } : { r: 0, g: 0, b: 0 },
+        uGlowColor: smoothedValues.fogGlowEnabled.current > 0.5 ? {
+            r: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.r, smoothedValues.glowColor.r.target, now, activeColorSmoothingDuration) * smoothedValues.glowIntensity.current),
+            g: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.g, smoothedValues.glowColor.g.target, now, activeColorSmoothingDuration) * smoothedValues.glowIntensity.current),
+            b: Math.min(1.0, getSmoothComponentValue(smoothedValues.glowColor.b, smoothedValues.glowColor.b.target, now, activeColorSmoothingDuration) * smoothedValues.glowIntensity.current)
+        } : { r: 0, g: 0, b: 0 },
 
     };
 
@@ -636,6 +661,9 @@ export function updateFrame({
 
             shaderProgram.setUniform1f('uBreathingRate', audioUniforms.breathingRate);
             shaderProgram.setUniform1f('uBreathingAmount', audioUniforms.breathingAmount);
+
+            // Tunnel expansion
+            shaderProgram.setUniform1f('uTunnelExpansion', audioUniforms.tunnelExpansion);
 
             // uBaseCameraSpeed etc. are not direct uniforms; they influence uCameraSpeed calculation.
             // uUseColorControls is also not a direct uniform; it influences color calculation in JS.

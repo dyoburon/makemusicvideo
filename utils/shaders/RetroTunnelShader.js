@@ -37,6 +37,9 @@ uniform float uTransientColorEffect;  // How much transients affect colors
 uniform float uBreathingRate;         // Controls how fast the tunnel breathes
 uniform float uBreathingAmount;       // Controls how much the tunnel expands/contracts
 
+// Tunnel expansion control
+uniform float uTunnelExpansion;       // Controls how open/brain-like the tunnel looks (default 2.5)
+
 // Color uniforms
 uniform vec3 uColor1;
 uniform vec3 uColor2;
@@ -80,10 +83,10 @@ vec3 randomColor(float seed) {
 float prm1 = 0.;
 vec2 bsMo = vec2(0);
 
-// Displacement for tunnel swirl - SIMPLIFIED (no audio modulation)
+// Displacement for tunnel swirl - controlled by uTunnelExpansion uniform
 vec2 disp(float t) {
-    // Fixed expansion - no audio modulation to prevent position chaos
-    float expansion = 1.5;
+    // Expansion controlled by slider (higher = more open/brain-like)
+    float expansion = uTunnelExpansion;
 
     return vec2(
         sin(t * 0.25) * expansion,

@@ -533,12 +533,20 @@ export function updateShaderParams(params) {
     // Update breathing parameters
     if (params.breathingRate !== undefined) {
         smoothedValues.breathingRate.target = params.breathingRate;
-        console.log(`[SHADER MANAGER] Updated breathingRate to ${params.breathingRate}`);
     }
 
     if (params.breathingAmount !== undefined) {
         smoothedValues.breathingAmount.target = params.breathingAmount;
-        console.log(`[SHADER MANAGER] Updated breathingAmount to ${params.breathingAmount}`);
+    }
+
+    // Update tunnel expansion
+    if (params.tunnelExpansion !== undefined) {
+        smoothedValues.tunnelExpansion.target = params.tunnelExpansion;
+    }
+
+    // Update glow intensity
+    if (params.glowIntensity !== undefined) {
+        smoothedValues.glowIntensity.target = params.glowIntensity;
     }
 
     // Update color mode toggle

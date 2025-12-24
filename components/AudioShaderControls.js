@@ -58,6 +58,12 @@ const AudioShaderControls = ({
 
         // Color mode toggle
         useColorControls: initialParams.useColorControls !== undefined ? initialParams.useColorControls : true,
+
+        // Tunnel and effect controls
+        tunnelExpansion: initialParams.tunnelExpansion || 2.5,
+        glowIntensity: initialParams.glowIntensity || 1.0,
+        breathingRate: initialParams.breathingRate || 0,
+        breathingAmount: initialParams.breathingAmount || 0,
     });
 
     // Track if any parameter has been changed since last apply
@@ -77,6 +83,10 @@ const AudioShaderControls = ({
 
     // Camera movement toggle (for testing colors without movement)
     const [cameraMovementEnabled, setCameraMovementEnabled] = useState(false);
+
+    // Fog/Glow toggle (for testing primary colors without fog/glow interference)
+    const [fogGlowEnabled, setFogGlowEnabled] = useState(false);
+
 
     // Helper to convert RGB [0-1] to hex color string for input elements
     const rgbToHex = useCallback((r, g, b) => {
@@ -194,6 +204,15 @@ const AudioShaderControls = ({
         smoothedValues.cameraMovementEnabled.target = enabled ? 1 : 0;
         console.log(`[CAMERA MOVEMENT] ${enabled ? 'ENABLED' : 'DISABLED'} - Camera speed ${enabled ? 'reacts to beats' : 'fixed at 1.0'}`);
     };
+
+    // Handle fog/glow toggle
+    const handleFogGlowToggle = (enabled) => {
+        setFogGlowEnabled(enabled);
+        smoothedValues.fogGlowEnabled.current = enabled ? 1 : 0;
+        smoothedValues.fogGlowEnabled.target = enabled ? 1 : 0;
+        console.log(`[FOG/GLOW] ${enabled ? 'ENABLED' : 'DISABLED'} - ${enabled ? 'Fog and glow colors active' : 'Primary colors only (no fog/glow)'}`);
+    };
+
 
     // Randomize all colors with one click
     const randomizeColors = () => {
@@ -621,7 +640,7 @@ const AudioShaderControls = ({
                 </summary>
 
                 {/* Camera Movement Toggle */}
-                <div className={styles.controlsRow} style={{ marginBottom: '12px', padding: '8px', backgroundColor: cameraMovementEnabled ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 100, 0, 0.1)', borderRadius: '4px', border: cameraMovementEnabled ? '1px solid #00FF00' : '1px dashed #FF6600' }}>
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
                     <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
                         <label className={styles.switchLabel} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
                             Camera Movement:
@@ -634,9 +653,106 @@ const AudioShaderControls = ({
                                 />
                                 <span className={styles.toggleSlider}></span>
                             </div>
-                            <span className={styles.toggleHint} style={{ fontSize: '0.65rem', opacity: 0.9, fontWeight: 'bold', color: cameraMovementEnabled ? '#00FF00' : '#FF6600' }}>
-                                {cameraMovementEnabled ? 'ON - Speed reacts to beats' : 'OFF - Fixed speed (colors only)'}
+                            <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                                {cameraMovementEnabled ? 'ON' : 'OFF'}
                             </span>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Fog/Glow Toggle */}
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.switchLabel} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+                            Fog & Glow:
+                            <div className={styles.toggleSwitch} style={{ position: 'relative', display: 'inline-block', margin: '0 8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={fogGlowEnabled}
+                                    onChange={(e) => handleFogGlowToggle(e.target.checked)}
+                                    className={styles.toggleInput}
+                                />
+                                <span className={styles.toggleSlider}></span>
+                            </div>
+                            <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                                {fogGlowEnabled ? 'ON' : 'OFF'}
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Tunnel Expansion Slider */}
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
+                            Tunnel Expansion: {params.tunnelExpansion.toFixed(1)}
+                            <input
+                                type="range"
+                                min="0.5"
+                                max="5.0"
+                                step="0.1"
+                                value={params.tunnelExpansion}
+                                onChange={(e) => handleSliderChange('tunnelExpansion', e.target.value)}
+                                className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                {/* Glow Intensity Slider */}
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
+                            Glow Intensity: {params.glowIntensity.toFixed(1)}
+                            <input
+                                type="range"
+                                min="0.0"
+                                max="3.0"
+                                step="0.1"
+                                value={params.glowIntensity}
+                                onChange={(e) => handleSliderChange('glowIntensity', e.target.value)}
+                                className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                {/* Breathing Rate Slider */}
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
+                            Breathing Rate: {params.breathingRate.toFixed(1)}
+                            <input
+                                type="range"
+                                min="0.0"
+                                max="5.0"
+                                step="0.1"
+                                value={params.breathingRate}
+                                onChange={(e) => handleSliderChange('breathingRate', e.target.value)}
+                                className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                {/* Breathing Amount Slider */}
+                <div className={styles.controlsRow} style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap' }}>
+                    <div className={styles.controlGroup} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <label className={styles.controlLabel} style={{ fontSize: '0.8rem', marginBottom: '3px', color: '#00FFFF' }}>
+                            Breathing Amount: {params.breathingAmount.toFixed(1)}
+                            <input
+                                type="range"
+                                min="0.0"
+                                max="15.0"
+                                step="0.5"
+                                value={params.breathingAmount}
+                                onChange={(e) => handleSliderChange('breathingAmount', e.target.value)}
+                                className={styles.rangeInput}
+                                style={{ width: '100%', marginTop: '5px' }}
+                            />
                         </label>
                     </div>
                 </div>
