@@ -123,8 +123,10 @@ vec2 map(vec3 p) {
 
     d = abs(d + prm1 * 2.) + prm1 * 0.2 - 2. + bsMo.y;
 
-    // No expansion/breathing - fixed tunnel size
-    // Audio reactivity is now ONLY in colors/glow, not position
+    // Breathing effect - this creates the "brain-like" expanded look
+    float breathingPhase = sin(uTime * uBreathingRate);
+    float breathingFactor = 1.0 + uBreathingAmount * (50.0 + 50.0 * breathingPhase);
+    d *= breathingFactor;
 
     return vec2(d + cl * 0.15 + 0.3, cl);
 }
