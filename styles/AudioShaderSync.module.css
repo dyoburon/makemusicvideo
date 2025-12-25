@@ -201,8 +201,8 @@
     background: linear-gradient(45deg, #E600E6, #FF00FF);
 }
 
-/* Base Button Style */
-.baseButton {
+
+.playButton {
     padding: 0.6rem 1.2rem;
     border-radius: 4px;
     border-style: solid;
@@ -214,10 +214,6 @@
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: 100px;
-}
-
-.playButton {
-    composes: baseButton;
     /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); */
     /* Removed shadow */
 }
@@ -512,7 +508,18 @@
 }
 
 .applyShaderButton {
-    composes: baseButton;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    border-style: solid;
+    border-width: 2px;
+    font-weight: bold;
+    font-family: 'VT323', monospace;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    /* Override specific styles */
     padding: 6px 12px;
     font-size: 0.85rem;
     width: auto;
@@ -560,7 +567,18 @@
 }
 
 .clearShaderButton {
-    composes: baseButton;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    border-style: solid;
+    border-width: 2px;
+    font-weight: bold;
+    font-family: 'VT323', monospace;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    /* Override specific styles */
     padding: 6px 12px;
     font-size: 0.85rem;
     width: auto;
@@ -647,6 +665,7 @@
     background: #1a1a2e;
     border-radius: 5px;
     outline: none;
+    appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
 }
@@ -752,27 +771,26 @@
 }
 
 .tabButton {
-    composes: baseButton;
-    /* Inherit some base button styles if desired, or define fully */
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    border-style: solid;
+    border-width: 2px;
+    font-weight: bold;
+    font-family: 'VT323', monospace;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    /* Override specific styles for tabs */
     flex-grow: 1;
     padding: 0.75rem 1rem;
     font-size: 1rem;
-    /* Adjusted for tab context */
-    text-transform: uppercase;
     background-color: transparent;
-    /* No background for inactive tabs */
     color: #00AAAA;
-    /* Dimmed cyan for inactive tabs */
     border: none;
-    /* Remove default button border */
     border-bottom: 3px solid transparent;
-    /* Space for active indicator */
     border-radius: 4px 4px 0 0;
-    /* Rounded top corners */
-    cursor: pointer;
-    transition: all 0.2s ease;
     margin-bottom: -2px;
-    /* Overlap with container border for seamless look */
     outline: none;
 }
 
